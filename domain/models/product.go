@@ -2,16 +2,14 @@ package models
 
 import (
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type Product struct {
-	gorm.Model
 	ID       uuid.UUID `json:"id" gorm:"type:uuid;primaryKey"`
-	Sku      string    `json:"sku"`
-	Name     string    `json:"name"`
-	Category string    `json:"category"`
-	Price    int       `json:"price"`
+	Sku      string    `json:"sku" binding:"required"`
+	Name     string    `json:"name" binding:"required"`
+	Category string    `json:"category" binding:"required"`
+	Price    int       `json:"price" binding:"required"`
 }
 
 type ProductPatch struct {
