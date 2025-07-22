@@ -15,6 +15,6 @@ func NewCreateProductUseCase(repo outbound.ProductRepositoryPort) *CreateProduct
 	}
 }
 
-func (uc *CreateProductUseCase) Execute(product *models.Product) error {
+func (uc *CreateProductUseCase) Execute(product models.Product) error {
 	return uc.repo.Create(product)
 }

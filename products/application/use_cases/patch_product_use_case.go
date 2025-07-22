@@ -1,7 +1,6 @@
 package use_cases
 
 import (
-	"github.com/Akiles94/go-test-api/products/application/dto"
 	"github.com/Akiles94/go-test-api/products/application/ports/outbound"
 	"github.com/google/uuid"
 )
@@ -16,6 +15,6 @@ func NewPatchProductUseCase(repo outbound.ProductRepositoryPort) *PatchProductUs
 	}
 }
 
-func (uc *PatchProductUseCase) Execute(id uuid.UUID, body dto.ProductPatchBody) error {
-	return uc.repo.Patch(id, body)
+func (uc *PatchProductUseCase) Execute(id uuid.UUID, updates map[string]interface{}) error {
+	return uc.repo.Patch(id, updates)
 }

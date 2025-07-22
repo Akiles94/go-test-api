@@ -5,5 +5,5 @@ import (
 )
 
 type CreateProductUseCasePort interface {
-	Execute(product *models.Product) error
+	Execute(product models.Product) error
 }

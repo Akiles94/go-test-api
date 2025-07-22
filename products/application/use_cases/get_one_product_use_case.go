@@ -16,6 +16,6 @@ func NewGetOneProductUseCase(repo outbound.ProductRepositoryPort) *GetOneProduct
 	}
 }
 
-func (uc *GetOneProductUseCase) Execute(id uuid.UUID) (*models.Product, error) {
+func (uc *GetOneProductUseCase) Execute(id uuid.UUID) (models.Product, error) {
 	return uc.repo.GetByID(id)
 }

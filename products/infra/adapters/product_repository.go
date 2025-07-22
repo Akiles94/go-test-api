@@ -1,9 +1,9 @@
 package adapters
 
 import (
-	"github.com/Akiles94/go-test-api/products/application/dto"
 	"github.com/Akiles94/go-test-api/products/domain/models"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -18,8 +18,8 @@ func NewProductRepository(db *gorm.DB) *ProductRepository {
 	return &ProductRepository{db: db}
 }
 
-func (pr *ProductRepository) GetAll(cursor *string, limit *int) (*dto.ProductsResponse, error) {
-	var products []models.Product
+func (pr *ProductRepository) GetAll(cursor *string, limit *int) ([]models.Product, *string, error) {
+	var products []ProductEntity
 	handledLimit := defaultLimit
 	if limit != nil {
 		handledLimit = *limit
@@ -28,74 +28,90 @@ func (pr *ProductRepository) GetAll(cursor *string, limit *int) (*dto.ProductsRe
 	if cursor != nil {
 		parsedCursor, err := uuid.Parse(*cursor)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		query = query.Where("id > ?", parsedCursor)
 	}
 
 	if err := query.Find(&products).Error; err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var nextCursor *string
 	if len(products) > handledLimit {
-		id := products[handledLimit].ID.String()
-		nextCursor = &id
+		lastItemInPage := products[handledLimit-1]
+		cursorStr := lastItemInPage.ID.String()
+		nextCursor = &cursorStr
 		products = products[:handledLimit]
 	}
 
-	return &dto.ProductsResponse{
-		Products:   products,
-		NextCursor: nextCursor,
-	}, nil
+	var productModels []models.Product
+	for _, entity := range products {
+		model := entity.ToDomainModel()
+		productModels = append(productModels, *model)
+	}
+
+	return productModels, nextCursor, nil
 }
-func (pr *ProductRepository) GetByID(id uuid.UUID) (*models.Product, error) {
-	var product models.Product
-	if err := pr.db.First(&product, id).Error; err != nil {
+func (pr *ProductRepository) GetByID(id uuid.UUID) (models.Product, error) {
+	var entity ProductEntity
+	if err := pr.db.First(&entity, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &product, nil
+
+	productModel := entity.ToDomainModel()
+	return *productModel, nil
 }
-func (pr *ProductRepository) Create(body *models.Product) error {
-	id := uuid.New()
-	body.ID = id
-	return pr.db.Create(&body).Error
+func (pr *ProductRepository) Create(product models.Product) error {
+	productEntity := ProductEntity{
+		ID:       product.ID(),
+		Sku:      product.Sku(),
+		Name:     product.Name(),
+		Category: product.Category(),
+		Price:    product.Price(),
+	}
+	return pr.db.Create(&productEntity).Error
 }
-func (pr *ProductRepository) Update(id uuid.UUID, body models.Product) error {
-	var storedProduct models.Product
+func (pr *ProductRepository) Update(id uuid.UUID, product models.Product) error {
+	var storedProduct ProductEntity
 	if err := pr.db.First(&storedProduct, id).Error; err != nil {
 		return err
 	}
-	storedProduct.Name = body.Name
-	storedProduct.Price = body.Price
-	storedProduct.Sku = body.Sku
-	storedProduct.Category = body.Category
+	storedProduct.Name = product.Name()
+	storedProduct.Price = product.Price()
+	storedProduct.Sku = product.Sku()
+	storedProduct.Category = product.Category()
 	return pr.db.Save(storedProduct).Error
 }
 func (pr *ProductRepository) Delete(id uuid.UUID) error {
-	return pr.db.Delete(&models.Product{}, id).Error
+	return pr.db.Delete(&ProductEntity{}, id).Error
 }
-func (pr *ProductRepository) Patch(id uuid.UUID, body dto.ProductPatchBody) error {
-	var product models.Product
-	if err := pr.db.First(&product, id).Error; err != nil {
+func (pr *ProductRepository) Patch(id uuid.UUID, updates map[string]interface{}) error {
+	var storedProduct ProductEntity
+	if err := pr.db.First(&storedProduct, id).Error; err != nil {
 		return err
 	}
 
-	if body.Sku != nil {
-		product.Sku = *body.Sku
+	if updates["sku"] != nil {
+		storedProduct.Sku = updates["sku"].(string)
 	}
-	if body.Name != nil {
-		product.Name = *body.Name
+	if updates["name"] != nil {
+		storedProduct.Name = updates["name"].(string)
 	}
-	if body.Category != nil {
-		product.Category = *body.Category
+	if updates["category"] != nil {
+		storedProduct.Category = updates["category"].(string)
 	}
-	if body.Price != nil {
-		product.Price = *body.Price
+	if updates["price"] != nil {
+		priceStr := updates["price"].(string)
+		priceDecimal, err := decimal.NewFromString(priceStr)
+		if err != nil {
+			return err
+		}
+		storedProduct.Price = priceDecimal
 	}
 
-	return pr.db.Save(&product).Error
+	return pr.db.Save(&storedProduct).Error
 }

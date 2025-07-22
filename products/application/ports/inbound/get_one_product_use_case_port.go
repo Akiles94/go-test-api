@@ -6,5 +6,5 @@ import (
 )
 
 type GetOneProductUseCasePort interface {
-	Execute(id uuid.UUID) (*models.Product, error)
+	Execute(id uuid.UUID) (models.Product, error)
 }

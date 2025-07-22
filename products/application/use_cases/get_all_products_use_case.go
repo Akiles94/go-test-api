@@ -1,8 +1,8 @@
 package use_cases
 
 import (
-	"github.com/Akiles94/go-test-api/products/application/dto"
 	"github.com/Akiles94/go-test-api/products/application/ports/outbound"
+	"github.com/Akiles94/go-test-api/products/domain/models"
 )
 
 type GetAllProductsUseCase struct {
@@ -15,6 +15,11 @@ func NewGetAllProductsUseCase(repo outbound.ProductRepositoryPort) *GetAllProduc
 	}
 }
 
-func (uc *GetAllProductsUseCase) Execute(cursor *string, limit *int) (*dto.ProductsResponse, error) {
-	return uc.repo.GetAll(cursor, limit)
+func (uc *GetAllProductsUseCase) Execute(cursor *string, limit *int) ([]models.Product, *string, error) {
+	products, nextCursor, err := uc.repo.GetAll(cursor, limit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return products, nextCursor, nil
 }
