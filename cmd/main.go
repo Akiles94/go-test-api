@@ -5,9 +5,9 @@ import (
 
 	"github.com/Akiles94/go-test-api/config"
 	"github.com/Akiles94/go-test-api/db"
-	"github.com/Akiles94/go-test-api/domain/models"
-	"github.com/Akiles94/go-test-api/infra/modules"
-	"github.com/Akiles94/go-test-api/interfaces"
+	"github.com/Akiles94/go-test-api/products/domain/models"
+	"github.com/Akiles94/go-test-api/products/infra/modules"
+	"github.com/Akiles94/go-test-api/shared/interfaces"
 	"github.com/gin-gonic/gin"
 )
 

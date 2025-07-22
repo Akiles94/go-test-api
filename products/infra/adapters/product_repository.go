@@ -1,8 +1,8 @@
 package adapters
 
 import (
-	"github.com/Akiles94/go-test-api/application/dto"
-	"github.com/Akiles94/go-test-api/domain/models"
+	"github.com/Akiles94/go-test-api/products/application/dto"
+	"github.com/Akiles94/go-test-api/products/domain/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -18,7 +18,7 @@ func NewProductRepository(db *gorm.DB) *ProductRepository {
 	return &ProductRepository{db: db}
 }
 
-func (pr *ProductRepository) GetPaginated(cursor *string, limit *int) (*dto.ProductsResponse, error) {
+func (pr *ProductRepository) GetAll(cursor *string, limit *int) (*dto.ProductsResponse, error) {
 	var products []models.Product
 	handledLimit := defaultLimit
 	if limit != nil {
@@ -78,7 +78,7 @@ func (pr *ProductRepository) Update(id uuid.UUID, body models.Product) error {
 func (pr *ProductRepository) Delete(id uuid.UUID) error {
 	return pr.db.Delete(&models.Product{}, id).Error
 }
-func (pr *ProductRepository) Patch(id uuid.UUID, body models.ProductPatch) error {
+func (pr *ProductRepository) Patch(id uuid.UUID, body dto.ProductPatchBody) error {
 	var product models.Product
 	if err := pr.db.First(&product, id).Error; err != nil {
 		return err

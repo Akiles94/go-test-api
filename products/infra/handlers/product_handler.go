@@ -4,19 +4,30 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Akiles94/go-test-api/application/ports/inbound"
-	"github.com/Akiles94/go-test-api/domain/models"
+	"github.com/Akiles94/go-test-api/products/application/dto"
+	"github.com/Akiles94/go-test-api/products/application/ports/inbound"
+	"github.com/Akiles94/go-test-api/products/domain/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type ProductHandler struct {
-	useCase inbound.ProductUseCasePort
+	createProductUseCase  inbound.CreateProductUseCasePort
+	updateProductUseCase  inbound.UpdateProductUseCasePort
+	patchProductUseCase   inbound.PatchProductUseCasePort
+	deleteProductUseCase  inbound.DeleteProductUseCasePort
+	getAllProductsUseCase inbound.GetAllProductsUseCasePort
+	getOneProductUseCase  inbound.GetOneProductUseCasePort
 }
 
-func NewProductHandler(useCase inbound.ProductUseCasePort) *ProductHandler {
+func NewProductHandler(createProductUseCase inbound.CreateProductUseCasePort, updateProductUseCase inbound.UpdateProductUseCasePort, patchProductUseCase inbound.PatchProductUseCasePort, deleteProductUseCase inbound.DeleteProductUseCasePort, getAllProductsUseCase inbound.GetAllProductsUseCasePort, getOneProductUseCase inbound.GetOneProductUseCasePort) *ProductHandler {
 	return &ProductHandler{
-		useCase: useCase,
+		createProductUseCase:  createProductUseCase,
+		updateProductUseCase:  updateProductUseCase,
+		patchProductUseCase:   patchProductUseCase,
+		deleteProductUseCase:  deleteProductUseCase,
+		getAllProductsUseCase: getAllProductsUseCase,
+		getOneProductUseCase:  getOneProductUseCase,
 	}
 }
 
@@ -39,7 +50,7 @@ func (ph *ProductHandler) GetPaginated(c *gin.Context) {
 		}
 		limit = &limitValue
 	}
-	productsResponse, err := ph.useCase.GetPaginated(cursor, limit)
+	productsResponse, err := ph.getAllProductsUseCase.Execute(cursor, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get products"})
 		return
@@ -53,7 +64,7 @@ func (ph *ProductHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid UUID"})
 		return
 	}
-	product, err := ph.useCase.GetByID(id)
+	product, err := ph.getOneProductUseCase.Execute(id)
 	if err != nil {
 		print("Error getting product by ID:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get product"})
@@ -73,7 +84,7 @@ func (ph *ProductHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if err := ph.useCase.Create(&product); err != nil {
+	if err := ph.createProductUseCase.Execute(&product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create product"})
 		return
 	}
@@ -94,7 +105,7 @@ func (ph *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := ph.useCase.Update(id, payload); err != nil {
+	if err := ph.updateProductUseCase.Execute(id, payload); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update product"})
 		return
 	}
@@ -109,13 +120,13 @@ func (ph *ProductHandler) Patch(c *gin.Context) {
 		return
 	}
 
-	var patch models.ProductPatch
+	var patch dto.ProductPatchBody
 	if err := c.ShouldBindJSON(&patch); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 		return
 	}
 
-	if err := ph.useCase.Patch(id, patch); err != nil {
+	if err := ph.patchProductUseCase.Execute(id, patch); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to patch product"})
 		return
 	}
@@ -130,7 +141,7 @@ func (ph *ProductHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := ph.useCase.Delete(id); err != nil {
+	if err := ph.deleteProductUseCase.Execute(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete product"})
 		return
 	}

@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/Akiles94/go-test-api/domain/models"
+import "github.com/Akiles94/go-test-api/products/domain/models"
 
 type ProductsResponse struct {
 	Products   []models.Product `json:"products"`

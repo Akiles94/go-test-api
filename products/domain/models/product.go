@@ -11,10 +11,3 @@ type Product struct {
 	Category string    `json:"category" binding:"required"`
 	Price    int       `json:"price" binding:"required"`
 }
-
-type ProductPatch struct {
-	Sku      *string `json:"sku,omitempty"`
-	Name     *string `json:"name,omitempty"`
-	Category *string `json:"category,omitempty"`
-	Price    *int    `json:"price,omitempty"`
-}
