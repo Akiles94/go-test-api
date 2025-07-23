@@ -6,9 +6,9 @@ import (
 
 	"github.com/Akiles94/go-test-api/products/application/dto"
 	"github.com/Akiles94/go-test-api/products/application/ports/inbound"
-	"github.com/Akiles94/go-test-api/products/domain/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type ProductHandler struct {
@@ -57,7 +57,7 @@ func (ph *ProductHandler) GetPaginated(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get products"})
 		return
 	}
-	var productResponses []dto.ProductResponse
+	var productResponses []dto.ProductResponse = make([]dto.ProductResponse, 0, len(products))
 	for _, product := range products {
 		productResponse := dto.ProductResponse{
 			ID:       product.ID(),
@@ -103,8 +103,13 @@ func (ph *ProductHandler) GetByID(c *gin.Context) {
 }
 
 func (ph *ProductHandler) Create(c *gin.Context) {
-	var product models.Product
-	if err := c.ShouldBindJSON(&product); err != nil {
+	var productDto dto.CreateProductRequest
+	if err := c.ShouldBindJSON(&productDto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		return
+	}
+	product, err := productDto.ToDomainModel()
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 		return
 	}
@@ -131,13 +136,18 @@ func (ph *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var payload models.Product
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	var productDto dto.CreateProductRequest
+	if err := c.ShouldBindJSON(&productDto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		return
+	}
+	product, err := productDto.ToDomainModel()
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 		return
 	}
 
-	if err := ph.updateProductUseCase.Execute(id, payload); err != nil {
+	if err := ph.updateProductUseCase.Execute(id, product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update product"})
 		return
 	}
@@ -169,7 +179,7 @@ func (ph *ProductHandler) Patch(c *gin.Context) {
 		updates["category"] = *patch.Category
 	}
 	if patch.Price != nil {
-		updates["price"] = *patch.Price
+		updates["price"] = decimal.NewFromFloat(*patch.Price)
 	}
 
 	if err := ph.patchProductUseCase.Execute(id, updates); err != nil {

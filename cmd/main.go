@@ -5,7 +5,7 @@ import (
 
 	"github.com/Akiles94/go-test-api/config"
 	"github.com/Akiles94/go-test-api/db"
-	"github.com/Akiles94/go-test-api/products/domain/models"
+	"github.com/Akiles94/go-test-api/products/infra/adapters"
 	"github.com/Akiles94/go-test-api/products/infra/modules"
 	"github.com/Akiles94/go-test-api/shared/interfaces"
 	"github.com/gin-gonic/gin"
@@ -16,7 +16,7 @@ func main() {
 
 	database := db.Connect()
 
-	if err := database.AutoMigrate(&models.Product{}); err != nil {
+	if err := database.AutoMigrate(&adapters.ProductEntity{}); err != nil {
 		log.Fatalf("❌ DB migration failed: %v", err)
 	}
 

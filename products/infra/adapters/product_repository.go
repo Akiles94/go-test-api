@@ -105,12 +105,7 @@ func (pr *ProductRepository) Patch(id uuid.UUID, updates map[string]interface{})
 		storedProduct.Category = updates["category"].(string)
 	}
 	if updates["price"] != nil {
-		priceStr := updates["price"].(string)
-		priceDecimal, err := decimal.NewFromString(priceStr)
-		if err != nil {
-			return err
-		}
-		storedProduct.Price = priceDecimal
+		storedProduct.Price = updates["price"].(decimal.Decimal)
 	}
 
 	return pr.db.Save(&storedProduct).Error
