@@ -1,9 +1,11 @@
 package inbound
 
 import (
+	"context"
+
 	"github.com/Akiles94/go-test-api/products/domain/models"
 )
 
 type GetAllProductsUseCasePort interface {
-	Execute(cursor *string, limit *int) ([]models.Product, *string, error)
+	Execute(ctx context.Context, cursor *string, limit *int) ([]models.Product, *string, error)
 }

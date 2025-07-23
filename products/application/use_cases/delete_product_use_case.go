@@ -1,6 +1,8 @@
 package use_cases
 
 import (
+	"context"
+
 	"github.com/Akiles94/go-test-api/products/application/ports/outbound"
 	"github.com/google/uuid"
 )
@@ -15,6 +17,6 @@ func NewDeleteProductUseCase(repo outbound.ProductRepositoryPort) *DeleteProduct
 	}
 }
 
-func (uc *DeleteProductUseCase) Execute(id uuid.UUID) error {
-	return uc.repo.Delete(id)
+func (uc *DeleteProductUseCase) Execute(ctx context.Context, id uuid.UUID) error {
+	return uc.repo.Delete(ctx, id)
 }

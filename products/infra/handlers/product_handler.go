@@ -52,20 +52,14 @@ func (ph *ProductHandler) GetPaginated(c *gin.Context) {
 		}
 		limit = &limitValue
 	}
-	products, nextCursor, err := ph.getAllProductsUseCase.Execute(cursor, limit)
+	products, nextCursor, err := ph.getAllProductsUseCase.Execute(c.Request.Context(), cursor, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get products"})
 		return
 	}
 	var productResponses []dto.ProductResponse = make([]dto.ProductResponse, 0, len(products))
 	for _, product := range products {
-		productResponse := dto.ProductResponse{
-			ID:       product.ID(),
-			Sku:      product.Sku(),
-			Name:     product.Name(),
-			Category: product.Category(),
-			Price:    product.Price(),
-		}
+		productResponse := dto.NewProductResponseFromDomainModel(product)
 		productResponses = append(productResponses, productResponse)
 	}
 	response := dto.ProductsListResponse{
@@ -82,7 +76,7 @@ func (ph *ProductHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid UUID"})
 		return
 	}
-	product, err := ph.getOneProductUseCase.Execute(id)
+	product, err := ph.getOneProductUseCase.Execute(c.Request.Context(), id)
 	if err != nil {
 		print("Error getting product by ID:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get product"})
@@ -92,13 +86,7 @@ func (ph *ProductHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
 		return
 	}
-	productResponse := dto.ProductResponse{
-		ID:       product.ID(),
-		Sku:      product.Sku(),
-		Name:     product.Name(),
-		Category: product.Category(),
-		Price:    product.Price(),
-	}
+	productResponse := dto.NewProductResponseFromDomainModel(product)
 	c.JSON(http.StatusOK, productResponse)
 }
 
@@ -114,7 +102,7 @@ func (ph *ProductHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if err := ph.createProductUseCase.Execute(product); err != nil {
+	if err := ph.createProductUseCase.Execute(c.Request.Context(), product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create product"})
 		return
 	}
@@ -147,7 +135,7 @@ func (ph *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := ph.updateProductUseCase.Execute(id, product); err != nil {
+	if err := ph.updateProductUseCase.Execute(c.Request.Context(), id, product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update product"})
 		return
 	}
@@ -182,7 +170,7 @@ func (ph *ProductHandler) Patch(c *gin.Context) {
 		updates["price"] = decimal.NewFromFloat(*patch.Price)
 	}
 
-	if err := ph.patchProductUseCase.Execute(id, updates); err != nil {
+	if err := ph.patchProductUseCase.Execute(c.Request.Context(), id, updates); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to patch product"})
 		return
 	}
@@ -197,7 +185,7 @@ func (ph *ProductHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := ph.deleteProductUseCase.Execute(id); err != nil {
+	if err := ph.deleteProductUseCase.Execute(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete product"})
 		return
 	}

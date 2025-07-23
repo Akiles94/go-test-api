@@ -1,6 +1,8 @@
 package use_cases
 
 import (
+	"context"
+
 	"github.com/Akiles94/go-test-api/products/application/ports/outbound"
 	"github.com/Akiles94/go-test-api/products/domain/models"
 	"github.com/google/uuid"
@@ -16,6 +18,6 @@ func NewUpdateProductUseCase(repo outbound.ProductRepositoryPort) *UpdateProduct
 	}
 }
 
-func (uc *UpdateProductUseCase) Execute(id uuid.UUID, body models.Product) error {
-	return uc.repo.Update(id, body)
+func (uc *UpdateProductUseCase) Execute(ctx context.Context, id uuid.UUID, body models.Product) error {
+	return uc.repo.Update(ctx, id, body)
 }

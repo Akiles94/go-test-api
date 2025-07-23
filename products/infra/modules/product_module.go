@@ -20,7 +20,13 @@ func NewProductModule(db *gorm.DB) *ProductModule {
 	deleteProductUseCase := use_cases.NewDeleteProductUseCase(repo)
 	getAllProductsUseCase := use_cases.NewGetAllProductsUseCase(repo)
 	getOneProductUseCase := use_cases.NewGetOneProductUseCase(repo)
-	handler := handlers.NewProductHandler(createProductUseCase, updateProductUseCase, patchProductUseCase, deleteProductUseCase, getAllProductsUseCase, getOneProductUseCase)
+	handler := handlers.NewProductHandler(
+		createProductUseCase,
+		updateProductUseCase,
+		patchProductUseCase,
+		deleteProductUseCase,
+		getAllProductsUseCase,
+		getOneProductUseCase)
 
 	return &ProductModule{handler: handler}
 }
