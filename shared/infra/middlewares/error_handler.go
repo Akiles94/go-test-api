@@ -28,6 +28,8 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 			switch panicErr := recovered.(type) {
 			case shared_domain.DomainError:
 				err = panicErr
+			case shared_handlers.InfraError:
+				err = panicErr
 			case error:
 				err = panicErr
 			default:
