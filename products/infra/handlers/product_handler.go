@@ -6,6 +6,9 @@ import (
 
 	"github.com/Akiles94/go-test-api/products/application/dto"
 	"github.com/Akiles94/go-test-api/products/application/ports/inbound"
+	shared_dto "github.com/Akiles94/go-test-api/shared/application/dto"
+	shared_domain "github.com/Akiles94/go-test-api/shared/domain"
+	shared_handlers "github.com/Akiles94/go-test-api/shared/infra/handlers"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -39,7 +42,7 @@ func (ph *ProductHandler) GetPaginated(c *gin.Context) {
 	if cursorStr != "" {
 		_, err := uuid.Parse(cursorStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid cursor UUID"})
+			c.Error(shared_handlers.ErrInvalidCursor)
 			return
 		}
 		cursor = &cursorStr
@@ -47,14 +50,14 @@ func (ph *ProductHandler) GetPaginated(c *gin.Context) {
 	if limitStr != "" {
 		limitValue, err := strconv.Atoi(limitStr)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse limit"})
+			c.Error(shared_handlers.ErrInvalidLimit)
 			return
 		}
 		limit = &limitValue
 	}
 	products, nextCursor, err := ph.getAllProductsUseCase.Execute(c.Request.Context(), cursor, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get products"})
+		c.Error(err)
 		return
 	}
 	var productResponses []dto.ProductResponse = make([]dto.ProductResponse, 0, len(products))
@@ -62,10 +65,7 @@ func (ph *ProductHandler) GetPaginated(c *gin.Context) {
 		productResponse := dto.NewProductResponseFromDomainModel(product)
 		productResponses = append(productResponses, productResponse)
 	}
-	response := dto.ProductsListResponse{
-		Products:   productResponses,
-		NextCursor: nextCursor,
-	}
+	response := shared_dto.NewPaginatedResult(productResponses, nextCursor)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -73,17 +73,19 @@ func (ph *ProductHandler) GetPaginated(c *gin.Context) {
 func (ph *ProductHandler) GetByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid UUID"})
+		c.Error(shared_handlers.ErrInvalidUUID)
 		return
 	}
 	product, err := ph.getOneProductUseCase.Execute(c.Request.Context(), id)
 	if err != nil {
-		print("Error getting product by ID:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get product"})
+		c.Error(err)
 		return
 	}
 	if product == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+		c.Error(shared_domain.DomainError{
+			Code:    string(shared_handlers.ErrorCodeNotFound),
+			Message: "Product not found",
+		})
 		return
 	}
 	productResponse := dto.NewProductResponseFromDomainModel(product)
@@ -93,17 +95,17 @@ func (ph *ProductHandler) GetByID(c *gin.Context) {
 func (ph *ProductHandler) Create(c *gin.Context) {
 	var productDto dto.CreateProductRequest
 	if err := c.ShouldBindJSON(&productDto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		c.Error(shared_handlers.ErrInvalidPayload)
 		return
 	}
 	product, err := productDto.ToDomainModel()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		c.Error(err)
 		return
 	}
 
 	if err := ph.createProductUseCase.Execute(c.Request.Context(), product); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create product"})
+		c.Error(err)
 		return
 	}
 	productResponse := dto.ProductResponse{
@@ -120,23 +122,23 @@ func (ph *ProductHandler) Create(c *gin.Context) {
 func (ph *ProductHandler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid UUID"})
+		c.Error(shared_handlers.ErrInvalidUUID)
 		return
 	}
 
 	var productDto dto.CreateProductRequest
 	if err := c.ShouldBindJSON(&productDto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		c.Error(shared_handlers.ErrInvalidPayload)
 		return
 	}
 	product, err := productDto.ToDomainModel()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		c.Error(err)
 		return
 	}
 
 	if err := ph.updateProductUseCase.Execute(c.Request.Context(), id, product); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update product"})
+		c.Error(err)
 		return
 	}
 
@@ -146,13 +148,13 @@ func (ph *ProductHandler) Update(c *gin.Context) {
 func (ph *ProductHandler) Patch(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid UUID"})
+		c.Error(shared_handlers.ErrInvalidUUID)
 		return
 	}
 
 	var patch dto.PatchProductRequest
 	if err := c.ShouldBindJSON(&patch); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		c.Error(shared_handlers.ErrInvalidPayload)
 		return
 	}
 
@@ -171,7 +173,7 @@ func (ph *ProductHandler) Patch(c *gin.Context) {
 	}
 
 	if err := ph.patchProductUseCase.Execute(c.Request.Context(), id, updates); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to patch product"})
+		c.Error(err)
 		return
 	}
 
@@ -181,12 +183,12 @@ func (ph *ProductHandler) Patch(c *gin.Context) {
 func (ph *ProductHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid UUID"})
+		c.Error(shared_handlers.ErrInvalidUUID)
 		return
 	}
 
 	if err := ph.deleteProductUseCase.Execute(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete product"})
+		c.Error(err)
 		return
 	}
 

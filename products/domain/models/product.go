@@ -1,10 +1,37 @@
 package models
 
 import (
-	"errors"
+	shared_domain "github.com/Akiles94/go-test-api/shared/domain"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+)
+
+var (
+	ErrProductPriceNegative = shared_domain.DomainError{
+		Code:    "PRODUCT_PRICE_NEGATIVE",
+		Message: "Product price cannot be negative",
+	}
+
+	ErrProductSkuEmpty = shared_domain.DomainError{
+		Code:    "PRODUCT_SKU_EMPTY",
+		Message: "Product SKU cannot be empty",
+	}
+
+	ErrProductNameEmpty = shared_domain.DomainError{
+		Code:    "PRODUCT_NAME_EMPTY",
+		Message: "Product name cannot be empty",
+	}
+
+	ErrProductCategoryEmpty = shared_domain.DomainError{
+		Code:    "PRODUCT_CATEGORY_EMPTY",
+		Message: "Product category cannot be empty",
+	}
+
+	ErrProductIdNil = shared_domain.DomainError{
+		Code:    "PRODUCT_ID_NIL",
+		Message: "Product ID cannot be nil",
+	}
 )
 
 type Product interface {
@@ -28,19 +55,19 @@ type product struct {
 
 func NewProduct(id uuid.UUID, sku, name, category string, price decimal.Decimal) (Product, error) {
 	if price.IsNegative() {
-		return nil, errors.New("price cannot be negative")
+		return nil, ErrProductPriceNegative
 	}
 	if sku == "" {
-		return nil, errors.New("sku cannot be empty")
+		return nil, ErrProductSkuEmpty
 	}
 	if name == "" {
-		return nil, errors.New("name cannot be empty")
+		return nil, ErrProductNameEmpty
 	}
 	if category == "" {
-		return nil, errors.New("category cannot be empty")
+		return nil, ErrProductCategoryEmpty
 	}
 	if id == uuid.Nil {
-		return nil, errors.New("id cannot be nil")
+		return nil, ErrProductIdNil
 	}
 
 	return &product{
@@ -74,7 +101,7 @@ func (p *product) Price() decimal.Decimal {
 
 func (p *product) SetPrice(price decimal.Decimal) error {
 	if price.IsNegative() {
-		return errors.New("price cannot be negative")
+		return ErrProductPriceNegative
 	}
 	p.price = price
 	return nil
@@ -82,7 +109,7 @@ func (p *product) SetPrice(price decimal.Decimal) error {
 
 func (p *product) SetName(name string) error {
 	if name == "" {
-		return errors.New("name cannot be empty")
+		return ErrProductNameEmpty
 	}
 	p.name = name
 	return nil
@@ -90,7 +117,7 @@ func (p *product) SetName(name string) error {
 
 func (p *product) SetCategory(category string) error {
 	if category == "" {
-		return errors.New("category cannot be empty")
+		return ErrProductCategoryEmpty
 	}
 	p.category = category
 	return nil

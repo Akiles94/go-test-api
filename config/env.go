@@ -1,9 +1,10 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type EnvConfig struct {
@@ -12,6 +13,8 @@ type EnvConfig struct {
 	DBUser     string
 	DBPassword string
 	DBName     string
+	ApiPort    string
+	Mode       string
 }
 
 var Env *EnvConfig
@@ -28,5 +31,7 @@ func LoadEnv() {
 		DBUser:     os.Getenv("DB_USER"),
 		DBPassword: os.Getenv("DB_PASSWORD"),
 		DBName:     os.Getenv("DB_NAME"),
+		ApiPort:    os.Getenv("API_PORT"),
+		Mode:       os.Getenv("MODE"),
 	}
 }
