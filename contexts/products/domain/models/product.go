@@ -1,34 +1,34 @@
 package models
 
 import (
-	shared_domain "github.com/Akiles94/go-test-api/contexts/shared/domain"
+	shared_models "github.com/Akiles94/go-test-api/contexts/shared/domain/models"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
 var (
-	ErrProductPriceNegative = shared_domain.DomainError{
+	ErrProductPriceNegative = shared_models.DomainError{
 		Code:    "PRODUCT_PRICE_NEGATIVE",
 		Message: "Product price cannot be negative",
 	}
 
-	ErrProductSkuEmpty = shared_domain.DomainError{
+	ErrProductSkuEmpty = shared_models.DomainError{
 		Code:    "PRODUCT_SKU_EMPTY",
 		Message: "Product SKU cannot be empty",
 	}
 
-	ErrProductNameEmpty = shared_domain.DomainError{
+	ErrProductNameEmpty = shared_models.DomainError{
 		Code:    "PRODUCT_NAME_EMPTY",
 		Message: "Product name cannot be empty",
 	}
 
-	ErrProductCategoryEmpty = shared_domain.DomainError{
+	ErrProductCategoryEmpty = shared_models.DomainError{
 		Code:    "PRODUCT_CATEGORY_EMPTY",
 		Message: "Product category cannot be empty",
 	}
 
-	ErrProductIdNil = shared_domain.DomainError{
+	ErrProductIdNil = shared_models.DomainError{
 		Code:    "PRODUCT_ID_NIL",
 		Message: "Product ID cannot be nil",
 	}

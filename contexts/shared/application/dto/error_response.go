@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"github.com/Akiles94/go-test-api/contexts/shared/domain"
+	"github.com/Akiles94/go-test-api/contexts/shared/domain/models"
 	shared_handlers "github.com/Akiles94/go-test-api/contexts/shared/infra/handlers"
 )
 
@@ -12,7 +12,7 @@ type ErrorResponse struct {
 }
 
 func FromDomainError(domainErr error) ErrorResponse {
-	if de, ok := domainErr.(domain.DomainError); ok {
+	if de, ok := domainErr.(models.DomainError); ok {
 		return ErrorResponse{
 			Error:   de.Code,
 			Message: de.Message,
