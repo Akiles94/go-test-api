@@ -40,9 +40,6 @@ type Product interface {
 	Name() string
 	Category() string
 	Price() decimal.Decimal
-	SetPrice(decimal.Decimal) error
-	SetName(string) error
-	SetCategory(string) error
 }
 
 type product struct {
@@ -97,28 +94,4 @@ func (p *product) Category() string {
 
 func (p *product) Price() decimal.Decimal {
 	return p.price
-}
-
-func (p *product) SetPrice(price decimal.Decimal) error {
-	if price.IsNegative() {
-		return ErrProductPriceNegative
-	}
-	p.price = price
-	return nil
-}
-
-func (p *product) SetName(name string) error {
-	if name == "" {
-		return ErrProductNameEmpty
-	}
-	p.name = name
-	return nil
-}
-
-func (p *product) SetCategory(category string) error {
-	if category == "" {
-		return ErrProductCategoryEmpty
-	}
-	p.category = category
-	return nil
 }
