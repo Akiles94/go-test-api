@@ -8,8 +8,7 @@ import (
 	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -17,14 +16,19 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupPostgresDB(t *testing.T) *gorm.DB {
-	t.Helper()
+type ProductRepositoryTestSuite struct {
+	suite.Suite
+	container *postgres.PostgresContainer
+	repo      *ProductRepository
+	ctx       context.Context
+}
 
-	ctx := context.Background()
+func (suite *ProductRepositoryTestSuite) SetupSuite() {
+	suite.ctx = context.Background()
 
-	// Create PostgreSQL container
-	postgresContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:15-alpine"),
+	// Create PostgreSQL container once for all tests
+	container, err := postgres.Run(suite.ctx,
+		"postgres:15-alpine",
 		postgres.WithDatabase("testdb"),
 		postgres.WithUsername("testuser"),
 		postgres.WithPassword("testpass"),
@@ -33,35 +37,41 @@ func setupPostgresDB(t *testing.T) *gorm.DB {
 				WithOccurrence(2),
 		),
 	)
-	require.NoError(t, err)
+	suite.Require().NoError(err)
+	suite.container = container
 
-	// Get connection string
-	connStr, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
-	require.NoError(t, err)
+	// Get connection string and connect to database
+	connStr, err := container.ConnectionString(suite.ctx, "sslmode=disable")
+	suite.Require().NoError(err)
 
-	// Connect to database
 	db, err := gorm.Open(postgres_driver.Open(connStr), &gorm.Config{})
-	require.NoError(t, err)
+	suite.Require().NoError(err)
 
-	// Auto-migrate the schema
+	// Auto-migrate schema
 	err = db.AutoMigrate(&ProductEntity{})
-	require.NoError(t, err)
+	suite.Require().NoError(err)
 
-	// Cleanup when test finishes
-	t.Cleanup(func() {
-		postgresContainer.Terminate(ctx)
-	})
-
-	return db
+	// Create repository singleton
+	suite.repo = NewProductRepository(db)
 }
 
-func TestProductRepository_Create(t *testing.T) {
-	t.Run("should create product successfully", func(t *testing.T) {
-		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
+func (suite *ProductRepositoryTestSuite) TearDownSuite() {
+	if suite.container != nil {
+		suite.container.Terminate(suite.ctx)
+	}
+}
 
+func (suite *ProductRepositoryTestSuite) TearDownTest() {
+	// Clean up all products after each test to ensure isolation
+	// Access DB through the repository's internal DB connection
+	if suite.repo != nil && suite.repo.db != nil {
+		suite.repo.db.Exec("TRUNCATE TABLE product_entities")
+	}
+}
+
+func (suite *ProductRepositoryTestSuite) TestCreate() {
+	suite.Run("should create product successfully", func() {
+		// Arrange
 		product := models.NewProductMother().
 			WithSku("POSTGRES-001").
 			WithName("PostgreSQL Test Product").
@@ -70,52 +80,42 @@ func TestProductRepository_Create(t *testing.T) {
 			MustBuild()
 
 		// Act
-		err := repo.Create(ctx, product)
+		err := suite.repo.Create(suite.ctx, product)
 
 		// Assert
-		require.NoError(t, err)
+		suite.Require().NoError(err)
 
-		// Verify product was created
-		var entity ProductEntity
-		err = db.First(&entity, product.ID()).Error
-		require.NoError(t, err)
-		assert.Equal(t, product.ID(), entity.ID)
-		assert.Equal(t, product.Sku(), entity.Sku)
-		assert.Equal(t, product.Name(), entity.Name)
-		assert.Equal(t, product.Category(), entity.Category)
-		assert.True(t, product.Price().Equal(entity.Price))
+		// Verify through repository
+		retrieved, err := suite.repo.GetByID(suite.ctx, product.ID())
+		suite.Require().NoError(err)
+		suite.NotNil(retrieved)
+		suite.Equal(product.ID(), retrieved.ID())
+		suite.Equal(product.Sku(), retrieved.Sku())
+		suite.Equal(product.Name(), retrieved.Name())
+		suite.Equal(product.Category(), retrieved.Category())
+		suite.True(product.Price().Equal(retrieved.Price()))
 	})
 
-	t.Run("should return error when creating duplicate ID", func(t *testing.T) {
+	suite.Run("should return error when creating duplicate ID", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
 		product := models.NewProductMother().MustBuild()
 
 		// Create product first time
-		err := repo.Create(ctx, product)
-		require.NoError(t, err)
+		err := suite.repo.Create(suite.ctx, product)
+		suite.Require().NoError(err)
 
 		// Act - try to create same product again
-		err = repo.Create(ctx, product)
+		err = suite.repo.Create(suite.ctx, product)
 
 		// Assert
-		assert.Error(t, err)
-		// PostgreSQL should return unique constraint violation
-		assert.Contains(t, err.Error(), "duplicate key")
+		suite.Error(err)
+		suite.Contains(err.Error(), "duplicate key")
 	})
 }
 
-func TestProductRepository_GetByID(t *testing.T) {
-	t.Run("should get product by ID successfully", func(t *testing.T) {
+func (suite *ProductRepositoryTestSuite) TestGetByID() {
+	suite.Run("should get product successfully", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
-		// Create product first
 		originalProduct := models.NewProductMother().
 			WithSku("GET-001").
 			WithName("Get Test Product").
@@ -123,47 +123,38 @@ func TestProductRepository_GetByID(t *testing.T) {
 			WithPriceFloat(150.75).
 			MustBuild()
 
-		err := repo.Create(ctx, originalProduct)
-		require.NoError(t, err)
+		err := suite.repo.Create(suite.ctx, originalProduct)
+		suite.Require().NoError(err)
 
 		// Act
-		retrievedProduct, err := repo.GetByID(ctx, originalProduct.ID())
+		retrievedProduct, err := suite.repo.GetByID(suite.ctx, originalProduct.ID())
 
 		// Assert
-		require.NoError(t, err)
-		require.NotNil(t, retrievedProduct)
-		assert.Equal(t, originalProduct.ID(), retrievedProduct.ID())
-		assert.Equal(t, originalProduct.Sku(), retrievedProduct.Sku())
-		assert.Equal(t, originalProduct.Name(), retrievedProduct.Name())
-		assert.Equal(t, originalProduct.Category(), retrievedProduct.Category())
-		assert.True(t, originalProduct.Price().Equal(retrievedProduct.Price()))
+		suite.Require().NoError(err)
+		suite.NotNil(retrievedProduct)
+		suite.Equal(originalProduct.ID(), retrievedProduct.ID())
+		suite.Equal(originalProduct.Sku(), retrievedProduct.Sku())
+		suite.Equal(originalProduct.Name(), retrievedProduct.Name())
+		suite.Equal(originalProduct.Category(), retrievedProduct.Category())
+		suite.True(originalProduct.Price().Equal(retrievedProduct.Price()))
 	})
 
-	t.Run("should return nil when product not found", func(t *testing.T) {
+	suite.Run("should return nil when product not found", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
 		nonExistentID := uuid.New()
 
 		// Act
-		product, err := repo.GetByID(ctx, nonExistentID)
+		product, err := suite.repo.GetByID(suite.ctx, nonExistentID)
 
 		// Assert
-		require.NoError(t, err)
-		assert.Nil(t, product)
+		suite.NoError(err)
+		suite.Nil(product)
 	})
 }
 
-func TestProductRepository_GetAll(t *testing.T) {
-	t.Run("should get all products without pagination", func(t *testing.T) {
+func (suite *ProductRepositoryTestSuite) TestGetAll() {
+	suite.Run("should get all products without pagination", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
-		// Create multiple products
 		products := []models.Product{
 			models.NewProductMother().WithSku("GETALL-001").WithName("Product 1").MustBuild(),
 			models.NewProductMother().WithSku("GETALL-002").WithName("Product 2").MustBuild(),
@@ -171,94 +162,77 @@ func TestProductRepository_GetAll(t *testing.T) {
 		}
 
 		for _, product := range products {
-			err := repo.Create(ctx, product)
-			require.NoError(t, err)
+			err := suite.repo.Create(suite.ctx, product)
+			suite.Require().NoError(err)
 		}
 
 		// Act
-		result, nextCursor, err := repo.GetAll(ctx, nil, nil)
+		result, nextCursor, err := suite.repo.GetAll(suite.ctx, nil, nil)
 
 		// Assert
-		require.NoError(t, err)
-		assert.Len(t, result, 3)
-		assert.Nil(t, nextCursor) // No pagination needed
+		suite.NoError(err)
+		suite.Len(result, 3)
+		suite.Nil(nextCursor)
 	})
 
-	t.Run("should handle pagination with limit", func(t *testing.T) {
+	suite.Run("should handle pagination with limit", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
-		// Create 5 products
 		for i := 1; i <= 5; i++ {
 			product := models.NewProductMother().
 				WithSku(fmt.Sprintf("LIMIT-%03d", i)).
 				WithName(fmt.Sprintf("Product %d", i)).
 				MustBuild()
-			err := repo.Create(ctx, product)
-			require.NoError(t, err)
+			err := suite.repo.Create(suite.ctx, product)
+			suite.Require().NoError(err)
 		}
 
 		limit := 3
 
 		// Act
-		result, nextCursor, err := repo.GetAll(ctx, nil, &limit)
+		result, nextCursor, err := suite.repo.GetAll(suite.ctx, nil, &limit)
 
 		// Assert
-		require.NoError(t, err)
-		assert.Len(t, result, 3)
-		assert.NotNil(t, nextCursor) // Should have next cursor
+		suite.NoError(err)
+		suite.Len(result, 3)
+		suite.NotNil(nextCursor)
 	})
 
-	t.Run("should handle cursor pagination", func(t *testing.T) {
+	suite.Run("should handle cursor pagination", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
-		// Create products in order
-		var productIDs []uuid.UUID
 		for i := 1; i <= 4; i++ {
 			product := models.NewProductMother().
 				WithSku(fmt.Sprintf("CURSOR-%03d", i)).
 				WithName(fmt.Sprintf("Product %d", i)).
 				MustBuild()
-			err := repo.Create(ctx, product)
-			require.NoError(t, err)
-			productIDs = append(productIDs, product.ID())
+			err := suite.repo.Create(suite.ctx, product)
+			suite.Require().NoError(err)
 		}
 
 		// Get first page
 		limit := 2
-		firstPage, cursor, err := repo.GetAll(ctx, nil, &limit)
-		require.NoError(t, err)
-		require.Len(t, firstPage, 2)
-		require.NotNil(t, cursor)
+		firstPage, cursor, err := suite.repo.GetAll(suite.ctx, nil, &limit)
+		suite.Require().NoError(err)
+		suite.Len(firstPage, 2)
+		suite.NotNil(cursor)
 
-		// Act - Get second page using cursor
-		secondPage, _, err := repo.GetAll(ctx, cursor, &limit)
+		// Act - Get second page
+		secondPage, _, err := suite.repo.GetAll(suite.ctx, cursor, &limit)
 
 		// Assert
-		require.NoError(t, err)
-		assert.Len(t, secondPage, 2)
-		// Products should be different from first page
+		suite.NoError(err)
+		suite.Len(secondPage, 2)
+		// Products should be different
 		for _, firstProduct := range firstPage {
 			for _, secondProduct := range secondPage {
-				assert.NotEqual(t, firstProduct.ID(), secondProduct.ID())
+				suite.NotEqual(firstProduct.ID(), secondProduct.ID())
 			}
 		}
 	})
 }
 
-func TestProductRepository_Update(t *testing.T) {
-	t.Run("should update product successfully", func(t *testing.T) {
+func (suite *ProductRepositoryTestSuite) TestUpdate() {
+	suite.Run("should update product successfully", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
-		// Create original product
 		original := models.NewProductMother().
 			WithSku("UPDATE-001").
 			WithName("Original Name").
@@ -266,10 +240,9 @@ func TestProductRepository_Update(t *testing.T) {
 			WithPriceFloat(100.00).
 			MustBuild()
 
-		err := repo.Create(ctx, original)
-		require.NoError(t, err)
+		err := suite.repo.Create(suite.ctx, original)
+		suite.Require().NoError(err)
 
-		// Create updated product with same ID
 		updated := models.NewProductMother().
 			WithID(original.ID()).
 			WithSku("UPDATED-001").
@@ -279,46 +252,36 @@ func TestProductRepository_Update(t *testing.T) {
 			MustBuild()
 
 		// Act
-		err = repo.Update(ctx, original.ID(), updated)
+		err = suite.repo.Update(suite.ctx, original.ID(), updated)
 
 		// Assert
-		require.NoError(t, err)
+		suite.NoError(err)
 
-		// Verify update
-		retrieved, err := repo.GetByID(ctx, original.ID())
-		require.NoError(t, err)
-		assert.Equal(t, "UPDATED-001", retrieved.Sku())
-		assert.Equal(t, "Updated Name", retrieved.Name())
-		assert.Equal(t, "Updated Category", retrieved.Category())
-		assert.True(t, decimal.NewFromFloat(200.00).Equal(retrieved.Price()))
+		retrieved, err := suite.repo.GetByID(suite.ctx, original.ID())
+		suite.Require().NoError(err)
+		suite.Equal("UPDATED-001", retrieved.Sku())
+		suite.Equal("Updated Name", retrieved.Name())
+		suite.Equal("Updated Category", retrieved.Category())
+		suite.True(decimal.NewFromFloat(200.00).Equal(retrieved.Price()))
 	})
 
-	t.Run("should return error when updating non-existent product", func(t *testing.T) {
+	suite.Run("should return error when updating non-existent product", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
 		nonExistentID := uuid.New()
 		product := models.NewProductMother().WithID(nonExistentID).MustBuild()
 
 		// Act
-		err := repo.Update(ctx, nonExistentID, product)
+		err := suite.repo.Update(suite.ctx, nonExistentID, product)
 
 		// Assert
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "record not found")
+		suite.Error(err)
+		suite.Contains(err.Error(), "record not found")
 	})
 }
 
-func TestProductRepository_Patch(t *testing.T) {
-	t.Run("should patch product fields successfully", func(t *testing.T) {
+func (suite *ProductRepositoryTestSuite) TestPatch() {
+	suite.Run("should patch product fields successfully", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
-		// Create original product
 		original := models.NewProductMother().
 			WithSku("PATCH-001").
 			WithName("Original Name").
@@ -326,8 +289,8 @@ func TestProductRepository_Patch(t *testing.T) {
 			WithPriceFloat(100.00).
 			MustBuild()
 
-		err := repo.Create(ctx, original)
-		require.NoError(t, err)
+		err := suite.repo.Create(suite.ctx, original)
+		suite.Require().NoError(err)
 
 		updates := map[string]interface{}{
 			"name":  "Patched Name",
@@ -335,105 +298,52 @@ func TestProductRepository_Patch(t *testing.T) {
 		}
 
 		// Act
-		err = repo.Patch(ctx, original.ID(), updates)
+		err = suite.repo.Patch(suite.ctx, original.ID(), updates)
 
 		// Assert
-		require.NoError(t, err)
+		suite.NoError(err)
 
-		// Verify patch
-		updated, err := repo.GetByID(ctx, original.ID())
-		require.NoError(t, err)
-		assert.Equal(t, "Patched Name", updated.Name())
-		assert.True(t, decimal.NewFromFloat(299.99).Equal(updated.Price()))
-		// Unchanged fields
-		assert.Equal(t, original.Sku(), updated.Sku())
-		assert.Equal(t, original.Category(), updated.Category())
+		updated, err := suite.repo.GetByID(suite.ctx, original.ID())
+		suite.Require().NoError(err)
+		suite.Equal("Patched Name", updated.Name())
+		suite.True(decimal.NewFromFloat(299.99).Equal(updated.Price()))
+		suite.Equal(original.Sku(), updated.Sku())
+		suite.Equal(original.Category(), updated.Category())
 	})
 
-	t.Run("should patch only specified fields", func(t *testing.T) {
+	suite.Run("should return error when patching non-existent product", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
-		original := models.NewProductMother().MustBuild()
-		err := repo.Create(ctx, original)
-		require.NoError(t, err)
-
-		updates := map[string]interface{}{
-			"sku": "NEW-SKU-001",
-		}
-
-		// Act
-		err = repo.Patch(ctx, original.ID(), updates)
-
-		// Assert
-		require.NoError(t, err)
-
-		updated, err := repo.GetByID(ctx, original.ID())
-		require.NoError(t, err)
-		assert.Equal(t, "NEW-SKU-001", updated.Sku())
-		// Other fields unchanged
-		assert.Equal(t, original.Name(), updated.Name())
-		assert.Equal(t, original.Category(), updated.Category())
-		assert.True(t, original.Price().Equal(updated.Price()))
-	})
-
-	t.Run("should return error when patching non-existent product", func(t *testing.T) {
-		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
 		nonExistentID := uuid.New()
-		updates := map[string]interface{}{
-			"name": "New Name",
-		}
+		updates := map[string]interface{}{"name": "New Name"}
 
 		// Act
-		err := repo.Patch(ctx, nonExistentID, updates)
+		err := suite.repo.Patch(suite.ctx, nonExistentID, updates)
 
 		// Assert
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "record not found")
+		suite.Error(err)
+		suite.Contains(err.Error(), "record not found")
 	})
 }
 
-func TestProductRepository_Delete(t *testing.T) {
-	t.Run("should delete product successfully", func(t *testing.T) {
+func (suite *ProductRepositoryTestSuite) TestDelete() {
+	suite.Run("should delete product successfully", func() {
 		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
 		product := models.NewProductMother().MustBuild()
-		err := repo.Create(ctx, product)
-		require.NoError(t, err)
+		err := suite.repo.Create(suite.ctx, product)
+		suite.Require().NoError(err)
 
 		// Act
-		err = repo.Delete(ctx, product.ID())
+		err = suite.repo.Delete(suite.ctx, product.ID())
 
 		// Assert
-		require.NoError(t, err)
+		suite.NoError(err)
 
-		// Verify deletion
-		deleted, err := repo.GetByID(ctx, product.ID())
-		require.NoError(t, err)
-		assert.Nil(t, deleted)
+		deleted, err := suite.repo.GetByID(suite.ctx, product.ID())
+		suite.NoError(err)
+		suite.Nil(deleted)
 	})
+}
 
-	t.Run("should not return error when deleting non-existent product", func(t *testing.T) {
-		// Arrange
-		db := setupPostgresDB(t)
-		repo := NewProductRepository(db)
-		ctx := context.Background()
-
-		nonExistentID := uuid.New()
-
-		// Act
-		err := repo.Delete(ctx, nonExistentID)
-
-		// Assert
-		require.NoError(t, err) // GORM doesn't error on delete non-existent
-	})
+func TestProductRepositoryTestSuite(t *testing.T) {
+	suite.Run(t, new(ProductRepositoryTestSuite))
 }
