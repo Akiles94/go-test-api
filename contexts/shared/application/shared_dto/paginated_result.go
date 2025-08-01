@@ -1,4 +1,4 @@
-package dto
+package shared_dto
 
 type PaginatedResult[T any] struct {
 	Items      []T     `json:"items"`

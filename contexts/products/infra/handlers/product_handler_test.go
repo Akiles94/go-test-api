@@ -10,7 +10,7 @@ import (
 
 	"github.com/Akiles94/go-test-api/contexts/products/application/dto"
 	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
-	shared_dto "github.com/Akiles94/go-test-api/contexts/shared/application/dto"
+	"github.com/Akiles94/go-test-api/contexts/shared/application/shared_dto"
 	"github.com/Akiles94/go-test-api/contexts/shared/infra/middlewares"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

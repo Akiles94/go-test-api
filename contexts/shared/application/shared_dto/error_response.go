@@ -1,8 +1,8 @@
-package dto
+package shared_dto
 
 import (
 	"github.com/Akiles94/go-test-api/contexts/shared/domain/models"
-	shared_handlers "github.com/Akiles94/go-test-api/contexts/shared/infra/handlers"
+	"github.com/Akiles94/go-test-api/contexts/shared/infra/shared_handlers"
 )
 
 type ErrorResponse struct {

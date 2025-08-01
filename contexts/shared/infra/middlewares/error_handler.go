@@ -3,9 +3,9 @@ package middlewares
 import (
 	"net/http"
 
-	"github.com/Akiles94/go-test-api/contexts/shared/application/dto"
+	"github.com/Akiles94/go-test-api/contexts/shared/application/shared_dto"
 	"github.com/Akiles94/go-test-api/contexts/shared/domain/models"
-	"github.com/Akiles94/go-test-api/contexts/shared/infra/handlers"
+	"github.com/Akiles94/go-test-api/contexts/shared/infra/shared_handlers"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,13 +28,13 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 			switch panicErr := recovered.(type) {
 			case models.DomainError:
 				err = panicErr
-			case handlers.InfraError:
+			case shared_handlers.InfraError:
 				err = panicErr
 			case error:
 				err = panicErr
 			default:
 				err = models.DomainError{
-					Code:    string(handlers.ErrorCodePanicError),
+					Code:    string(shared_handlers.ErrorCodePanicError),
 					Message: "An unexpected error occurred",
 				}
 			}
@@ -45,13 +45,13 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 
 func handleErrorResponse(c *gin.Context, err error) {
 	statusCode := getStatusCodeFromError(err)
-	var errorResponse dto.ErrorResponse
+	var errorResponse shared_dto.ErrorResponse
 
 	if _, ok := err.(models.DomainError); ok {
-		errorResponse = dto.FromDomainError(err)
+		errorResponse = shared_dto.FromDomainError(err)
 	}
-	if _, ok := err.(handlers.InfraError); ok {
-		errorResponse = dto.FromInfraError(err)
+	if _, ok := err.(shared_handlers.InfraError); ok {
+		errorResponse = shared_dto.FromInfraError(err)
 	}
 
 	c.Header("Content-Type", "application/json")
@@ -63,8 +63,8 @@ func getStatusCodeFromError(err error) int {
 	if _, ok := err.(models.DomainError); ok {
 		return defaultDomainErrorStatus
 	}
-	if infraErr, ok := err.(handlers.InfraError); ok {
-		if statusCode, exists := handlers.InfraErrorStatusMap[handlers.ErrorCode(infraErr.Code)]; exists {
+	if infraErr, ok := err.(shared_handlers.InfraError); ok {
+		if statusCode, exists := shared_handlers.InfraErrorStatusMap[shared_handlers.ErrorCode(infraErr.Code)]; exists {
 			return statusCode
 		}
 	}

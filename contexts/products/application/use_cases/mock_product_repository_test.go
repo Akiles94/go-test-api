@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
-	"github.com/Akiles94/go-test-api/contexts/shared/infra/handlers"
+	"github.com/Akiles94/go-test-api/contexts/shared/infra/shared_handlers"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 )
@@ -62,7 +62,7 @@ func (m *MockProductRepository) SetupCreateError(product models.Product, err err
 }
 
 func (m *MockProductRepository) SetupGetByIDNotFound(id uuid.UUID) *mock.Call {
-	return m.On("GetByID", mock.Anything, id).Return(nil, handlers.ErrorCodeNotFound)
+	return m.On("GetByID", mock.Anything, id).Return(nil, shared_handlers.ErrorCodeNotFound)
 }
 
 func (m *MockProductRepository) SetupGetByIDError(err error) *mock.Call {
