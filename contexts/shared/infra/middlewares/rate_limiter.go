@@ -5,47 +5,48 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Akiles94/go-test-api/config"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
 
 type IPRateLimiter struct {
-	ips map[string]*rate.Limiter
-	mu  *sync.RWMutex
-	r   rate.Limit
-	b   int
+	ips           map[string]*rate.Limiter
+	mu            *sync.RWMutex
+	rateTime      rate.Limit
+	requestsCount int
 }
 
-func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
+func NewIPRateLimiter(rateTime rate.Limit, requestsCount int) *IPRateLimiter {
 	return &IPRateLimiter{
-		ips: make(map[string]*rate.Limiter),
-		mu:  &sync.RWMutex{},
-		r:   r,
-		b:   b,
+		ips:           make(map[string]*rate.Limiter),
+		mu:            &sync.RWMutex{},
+		rateTime:      rateTime,
+		requestsCount: requestsCount,
 	}
 }
 
-func (i *IPRateLimiter) AddIP(ip string) *rate.Limiter {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	limiter := rate.NewLimiter(i.r, i.b)
-	i.ips[ip] = limiter
+func (rl *IPRateLimiter) AddIP(ip string) *rate.Limiter {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	limiter := rate.NewLimiter(rl.rateTime, rl.requestsCount)
+	rl.ips[ip] = limiter
 	return limiter
 }
 
-func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
-	i.mu.Lock()
-	limiter, exists := i.ips[ip]
+func (rl *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
+	rl.mu.Lock()
+	limiter, exists := rl.ips[ip]
 	if !exists {
-		i.mu.Unlock()
-		return i.AddIP(ip)
+		rl.mu.Unlock()
+		return rl.AddIP(ip)
 	}
-	i.mu.Unlock()
+	rl.mu.Unlock()
 	return limiter
 }
 
 func RateLimitMiddleware() gin.HandlerFunc {
-	limiter := NewIPRateLimiter(rate.Every(time.Minute), 100) // 100 requests per minute
+	limiter := NewIPRateLimiter(rate.Every(time.Minute), config.Env.RateLimitCount)
 
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
