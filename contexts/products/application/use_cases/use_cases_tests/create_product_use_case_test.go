@@ -1,10 +1,12 @@
-package use_cases
+package use_cases_tests
 
 import (
 	"context"
 	"testing"
 
-	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases"
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases/use_cases_mocks"
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
 	shared_models "github.com/Akiles94/go-test-api/contexts/shared/domain/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,9 +15,9 @@ func TestCreateProductUseCase_Execute(t *testing.T) {
 	t.Run("should create product successfully", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		product := models.NewProductMother().MustBuild()
-		useCase := NewCreateProductUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		product := models_mothers.NewProductMother().MustBuild()
+		useCase := use_cases.NewCreateProductUseCase(mockRepo)
 
 		mockRepo.SetupCreateSuccess(product)
 
@@ -30,10 +32,10 @@ func TestCreateProductUseCase_Execute(t *testing.T) {
 	t.Run("should return error when repository fails", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewCreateProductUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewCreateProductUseCase(mockRepo)
 
-		product := models.NewProductMother().MustBuild()
+		product := models_mothers.NewProductMother().MustBuild()
 		expectedError := shared_models.DomainError{
 			Code:    "DATABASE_ERROR",
 			Message: "Database connection failed",

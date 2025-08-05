@@ -1,8 +1,9 @@
-package adapters
+package adapters_tests
 
 import (
 	"testing"
 
+	"github.com/Akiles94/go-test-api/contexts/products/infra/adapters"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -10,7 +11,7 @@ import (
 
 func ProductEntityToDomainModelTest(t *testing.T) {
 	//Arrange
-	productEntity := &ProductEntity{
+	productEntity := &adapters.ProductEntity{
 		ID:    uuid.New(),
 		Name:  "Test Product",
 		Price: decimal.NewFromFloat(100),

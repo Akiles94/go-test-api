@@ -3,7 +3,7 @@ package dto
 import (
 	"testing"
 
-	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +19,7 @@ func TestCreateProductRequest_ToDomainModel(t *testing.T) {
 		}
 
 		// Act
-		domainModel := models.NewProductMother().MustBuild()
+		domainModel := models_mothers.NewProductMother().MustBuild()
 
 		// Assert
 		assert.Equal(t, request.Sku, domainModel.Sku())

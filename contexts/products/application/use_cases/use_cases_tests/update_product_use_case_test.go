@@ -1,11 +1,13 @@
-package use_cases
+package use_cases_tests
 
 import (
 	"context"
 	"errors"
 	"testing"
 
-	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases"
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases/use_cases_mocks"
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,11 +16,11 @@ func UpdateProductUseCase_Execute(t *testing.T) {
 	t.Run("should update product successfully", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewUpdateProductUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewUpdateProductUseCase(mockRepo)
 
 		productID := uuid.New()
-		product := models.NewProductMother().MustBuild()
+		product := models_mothers.NewProductMother().MustBuild()
 		mockRepo.SetupUpdateSuccess(productID, product)
 		// Act
 		err := useCase.Execute(ctx, productID, product)
@@ -31,11 +33,11 @@ func UpdateProductUseCase_Execute(t *testing.T) {
 	t.Run("should return error when repository fails", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewUpdateProductUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewUpdateProductUseCase(mockRepo)
 
 		productID := uuid.New()
-		product := models.NewProductMother().MustBuild()
+		product := models_mothers.NewProductMother().MustBuild()
 		expectedError := errors.New("Database connection failed")
 
 		mockRepo.SetupUpdateError(productID, product, expectedError)

@@ -10,6 +10,9 @@ import (
 
 	"github.com/Akiles94/go-test-api/contexts/products/application/dto"
 	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
+	"github.com/Akiles94/go-test-api/contexts/products/infra/handlers"
+	"github.com/Akiles94/go-test-api/contexts/products/infra/handlers/handlers_mocks"
 	"github.com/Akiles94/go-test-api/contexts/shared/application/shared_dto"
 	"github.com/Akiles94/go-test-api/contexts/shared/infra/middlewares"
 	"github.com/gin-gonic/gin"
@@ -21,15 +24,15 @@ import (
 
 type ProductHandlerTestSuite struct {
 	suite.Suite
-	handler *ProductHandler
+	handler *handlers.ProductHandler
 	router  *gin.Engine
 	// Mocks - solo para poder hacer assertions y configurar expectations
-	mockCreateUseCase *MockCreateProductUseCase
-	mockUpdateUseCase *MockUpdateProductUseCase
-	mockPatchUseCase  *MockPatchProductUseCase
-	mockDeleteUseCase *MockDeleteProductUseCase
-	mockGetAllUseCase *MockGetAllProductsUseCase
-	mockGetOneUseCase *MockGetOneProductUseCase
+	mockCreateUseCase *handlers_mocks.MockCreateProductUseCase
+	mockUpdateUseCase *handlers_mocks.MockUpdateProductUseCase
+	mockPatchUseCase  *handlers_mocks.MockPatchProductUseCase
+	mockDeleteUseCase *handlers_mocks.MockDeleteProductUseCase
+	mockGetAllUseCase *handlers_mocks.MockGetAllProductsUseCase
+	mockGetOneUseCase *handlers_mocks.MockGetOneProductUseCase
 }
 
 func (suite *ProductHandlerTestSuite) SetupSuite() {
@@ -38,15 +41,15 @@ func (suite *ProductHandlerTestSuite) SetupSuite() {
 
 func (suite *ProductHandlerTestSuite) SetupTest() {
 	// Create mocks
-	suite.mockCreateUseCase = new(MockCreateProductUseCase)
-	suite.mockUpdateUseCase = new(MockUpdateProductUseCase)
-	suite.mockPatchUseCase = new(MockPatchProductUseCase)
-	suite.mockDeleteUseCase = new(MockDeleteProductUseCase)
-	suite.mockGetAllUseCase = new(MockGetAllProductsUseCase)
-	suite.mockGetOneUseCase = new(MockGetOneProductUseCase)
+	suite.mockCreateUseCase = new(handlers_mocks.MockCreateProductUseCase)
+	suite.mockUpdateUseCase = new(handlers_mocks.MockUpdateProductUseCase)
+	suite.mockPatchUseCase = new(handlers_mocks.MockPatchProductUseCase)
+	suite.mockDeleteUseCase = new(handlers_mocks.MockDeleteProductUseCase)
+	suite.mockGetAllUseCase = new(handlers_mocks.MockGetAllProductsUseCase)
+	suite.mockGetOneUseCase = new(handlers_mocks.MockGetOneProductUseCase)
 
 	// Create handler with injected mocks
-	suite.handler = NewProductHandler(
+	suite.handler = handlers.NewProductHandler(
 		suite.mockCreateUseCase,
 		suite.mockUpdateUseCase,
 		suite.mockPatchUseCase,
@@ -81,8 +84,8 @@ func (suite *ProductHandlerTestSuite) TestGetPaginated() {
 	suite.Run("should return paginated products successfully", func() {
 		// Arrange
 		products := []models.Product{
-			models.NewProductMother().WithName("Product 1").MustBuild(),
-			models.NewProductMother().WithName("Product 2").MustBuild(),
+			models_mothers.NewProductMother().WithName("Product 1").MustBuild(),
+			models_mothers.NewProductMother().WithName("Product 2").MustBuild(),
 		}
 		nextCursor := "next-cursor"
 
@@ -109,7 +112,7 @@ func (suite *ProductHandlerTestSuite) TestGetPaginated() {
 	suite.Run("should handle pagination with limit", func() {
 		// Arrange
 		products := []models.Product{
-			models.NewProductMother().WithName("Product 1").MustBuild(),
+			models_mothers.NewProductMother().WithName("Product 1").MustBuild(),
 		}
 		limit := 1
 
@@ -151,7 +154,7 @@ func (suite *ProductHandlerTestSuite) TestGetByID() {
 	suite.Run("should return product successfully", func() {
 		// Arrange
 		productID := uuid.New()
-		product := models.NewProductMother().
+		product := models_mothers.NewProductMother().
 			WithID(productID).
 			WithName("Test Product").
 			MustBuild()

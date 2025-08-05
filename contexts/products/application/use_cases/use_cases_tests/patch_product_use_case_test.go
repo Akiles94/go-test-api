@@ -1,10 +1,12 @@
-package use_cases
+package use_cases_tests
 
 import (
 	"context"
 	"errors"
 	"testing"
 
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases"
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases/use_cases_mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,8 +15,8 @@ func PatchProductUseCase_Execute(t *testing.T) {
 	t.Run("should patch product successfully", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewPatchProductUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewPatchProductUseCase(mockRepo)
 
 		productID := uuid.New()
 		patchData := map[string]interface{}{"name": "Updated Product Name"}
@@ -30,8 +32,8 @@ func PatchProductUseCase_Execute(t *testing.T) {
 	t.Run("should return error when repository fails", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewPatchProductUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewPatchProductUseCase(mockRepo)
 
 		productID := uuid.New()
 		patchData := map[string]interface{}{"name": "Updated Product Name"}

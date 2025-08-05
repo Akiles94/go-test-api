@@ -1,8 +1,10 @@
-package models
+package models_tests
 
 import (
 	"testing"
 
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +14,7 @@ import (
 func TestNewProduct(t *testing.T) {
 	t.Run("should create product with valid data", func(t *testing.T) {
 		// Arrange
-		mother := NewProductMother()
+		mother := models_mothers.NewProductMother()
 
 		// Act
 		product, err := mother.Build()
@@ -20,61 +22,61 @@ func TestNewProduct(t *testing.T) {
 		// Assert
 		require.NoError(t, err)
 		assert.NotNil(t, product)
-		assert.Equal(t, mother.id, product.ID())
-		assert.Equal(t, mother.sku, product.Sku())
-		assert.Equal(t, mother.name, product.Name())
-		assert.Equal(t, mother.category, product.Category())
-		assert.True(t, mother.price.Equal(product.Price()))
+		assert.Equal(t, mother.Id, product.ID())
+		assert.Equal(t, mother.Sku, product.Sku())
+		assert.Equal(t, mother.Name, product.Name())
+		assert.Equal(t, mother.Category, product.Category())
+		assert.True(t, mother.Price.Equal(product.Price()))
 	})
 
 	t.Run("should return error when price is negative", func(t *testing.T) {
 		// Arrange & Act
-		product, err := NewProductMother().WithPriceFloat(-1).Build()
+		product, err := models_mothers.NewProductMother().WithPriceFloat(-1).Build()
 
 		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, product)
-		assert.Equal(t, ErrProductPriceNegative, err)
+		assert.Equal(t, models.ErrProductPriceNegative, err)
 	})
 
 	t.Run("should return error when SKU is empty", func(t *testing.T) {
 		// Arrange & Act
-		product, err := NewProductMother().WithSku("").Build()
+		product, err := models_mothers.NewProductMother().WithSku("").Build()
 
 		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, product)
-		assert.Equal(t, ErrProductSkuEmpty, err)
+		assert.Equal(t, models.ErrProductSkuEmpty, err)
 	})
 
 	t.Run("should return error when name is empty", func(t *testing.T) {
 		// Arrange & Act
-		product, err := NewProductMother().WithName("").Build()
+		product, err := models_mothers.NewProductMother().WithName("").Build()
 
 		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, product)
-		assert.Equal(t, ErrProductNameEmpty, err)
+		assert.Equal(t, models.ErrProductNameEmpty, err)
 	})
 
 	t.Run("should return error when category is empty", func(t *testing.T) {
 		// Arrange & Act
-		product, err := NewProductMother().WithCategory("").Build()
+		product, err := models_mothers.NewProductMother().WithCategory("").Build()
 
 		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, product)
-		assert.Equal(t, ErrProductCategoryEmpty, err)
+		assert.Equal(t, models.ErrProductCategoryEmpty, err)
 	})
 
 	t.Run("should return error when ID is nil", func(t *testing.T) {
 		// Arrange & Act
-		product, err := NewProductMother().WithID(uuid.Nil).Build()
+		product, err := models_mothers.NewProductMother().WithID(uuid.Nil).Build()
 
 		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, product)
-		assert.Equal(t, ErrProductIdNil, err)
+		assert.Equal(t, models.ErrProductIdNil, err)
 	})
 }
 
@@ -87,7 +89,7 @@ func TestProduct_Getters(t *testing.T) {
 		category := "Custom Category"
 		price := decimal.NewFromFloat(123.45)
 
-		product := NewProductMother().
+		product := models_mothers.NewProductMother().
 			WithID(id).
 			WithSku(sku).
 			WithName(name).

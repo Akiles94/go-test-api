@@ -1,4 +1,4 @@
-package adapters
+package adapters_tests
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
+	"github.com/Akiles94/go-test-api/contexts/products/infra/adapters"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/suite"
@@ -19,7 +21,8 @@ import (
 type ProductRepositoryTestSuite struct {
 	suite.Suite
 	container *postgres.PostgresContainer
-	repo      *ProductRepository
+	db        *gorm.DB
+	repo      *adapters.ProductRepository
 	ctx       context.Context
 }
 
@@ -48,11 +51,12 @@ func (suite *ProductRepositoryTestSuite) SetupSuite() {
 	suite.Require().NoError(err)
 
 	// Auto-migrate schema
-	err = db.AutoMigrate(&ProductEntity{})
+	err = db.AutoMigrate(&adapters.ProductEntity{})
 	suite.Require().NoError(err)
 
 	// Create repository singleton
-	suite.repo = NewProductRepository(db)
+	suite.repo = adapters.NewProductRepository(db)
+	suite.db = db
 }
 
 func (suite *ProductRepositoryTestSuite) TearDownSuite() {
@@ -64,15 +68,15 @@ func (suite *ProductRepositoryTestSuite) TearDownSuite() {
 func (suite *ProductRepositoryTestSuite) TearDownTest() {
 	// Clean up all products after each test to ensure isolation
 	// Access DB through the repository's internal DB connection
-	if suite.repo != nil && suite.repo.db != nil {
-		suite.repo.db.Exec("TRUNCATE TABLE product_entities")
+	if suite.repo != nil && suite.db != nil {
+		suite.db.Exec("TRUNCATE TABLE product_entities")
 	}
 }
 
 func (suite *ProductRepositoryTestSuite) TestCreate() {
 	suite.Run("should create product successfully", func() {
 		// Arrange
-		product := models.NewProductMother().
+		product := models_mothers.NewProductMother().
 			WithSku("POSTGRES-001").
 			WithName("PostgreSQL Test Product").
 			WithCategory("Database").
@@ -98,7 +102,7 @@ func (suite *ProductRepositoryTestSuite) TestCreate() {
 
 	suite.Run("should return error when creating duplicate ID", func() {
 		// Arrange
-		product := models.NewProductMother().MustBuild()
+		product := models_mothers.NewProductMother().MustBuild()
 
 		// Create product first time
 		err := suite.repo.Create(suite.ctx, product)
@@ -116,7 +120,7 @@ func (suite *ProductRepositoryTestSuite) TestCreate() {
 func (suite *ProductRepositoryTestSuite) TestGetByID() {
 	suite.Run("should get product successfully", func() {
 		// Arrange
-		originalProduct := models.NewProductMother().
+		originalProduct := models_mothers.NewProductMother().
 			WithSku("GET-001").
 			WithName("Get Test Product").
 			WithCategory("Test Category").
@@ -156,9 +160,9 @@ func (suite *ProductRepositoryTestSuite) TestGetAll() {
 	suite.Run("should get all products without pagination", func() {
 		// Arrange
 		products := []models.Product{
-			models.NewProductMother().WithSku("GETALL-001").WithName("Product 1").MustBuild(),
-			models.NewProductMother().WithSku("GETALL-002").WithName("Product 2").MustBuild(),
-			models.NewProductMother().WithSku("GETALL-003").WithName("Product 3").MustBuild(),
+			models_mothers.NewProductMother().WithSku("GETALL-001").WithName("Product 1").MustBuild(),
+			models_mothers.NewProductMother().WithSku("GETALL-002").WithName("Product 2").MustBuild(),
+			models_mothers.NewProductMother().WithSku("GETALL-003").WithName("Product 3").MustBuild(),
 		}
 
 		for _, product := range products {
@@ -178,7 +182,7 @@ func (suite *ProductRepositoryTestSuite) TestGetAll() {
 	suite.Run("should handle pagination with limit", func() {
 		// Arrange
 		for i := 1; i <= 5; i++ {
-			product := models.NewProductMother().
+			product := models_mothers.NewProductMother().
 				WithSku(fmt.Sprintf("LIMIT-%03d", i)).
 				WithName(fmt.Sprintf("Product %d", i)).
 				MustBuild()
@@ -200,7 +204,7 @@ func (suite *ProductRepositoryTestSuite) TestGetAll() {
 	suite.Run("should handle cursor pagination", func() {
 		// Arrange
 		for i := 1; i <= 4; i++ {
-			product := models.NewProductMother().
+			product := models_mothers.NewProductMother().
 				WithSku(fmt.Sprintf("CURSOR-%03d", i)).
 				WithName(fmt.Sprintf("Product %d", i)).
 				MustBuild()
@@ -233,7 +237,7 @@ func (suite *ProductRepositoryTestSuite) TestGetAll() {
 func (suite *ProductRepositoryTestSuite) TestUpdate() {
 	suite.Run("should update product successfully", func() {
 		// Arrange
-		original := models.NewProductMother().
+		original := models_mothers.NewProductMother().
 			WithSku("UPDATE-001").
 			WithName("Original Name").
 			WithCategory("Original Category").
@@ -243,7 +247,7 @@ func (suite *ProductRepositoryTestSuite) TestUpdate() {
 		err := suite.repo.Create(suite.ctx, original)
 		suite.Require().NoError(err)
 
-		updated := models.NewProductMother().
+		updated := models_mothers.NewProductMother().
 			WithID(original.ID()).
 			WithSku("UPDATED-001").
 			WithName("Updated Name").
@@ -268,7 +272,7 @@ func (suite *ProductRepositoryTestSuite) TestUpdate() {
 	suite.Run("should return error when updating non-existent product", func() {
 		// Arrange
 		nonExistentID := uuid.New()
-		product := models.NewProductMother().WithID(nonExistentID).MustBuild()
+		product := models_mothers.NewProductMother().WithID(nonExistentID).MustBuild()
 
 		// Act
 		err := suite.repo.Update(suite.ctx, nonExistentID, product)
@@ -282,7 +286,7 @@ func (suite *ProductRepositoryTestSuite) TestUpdate() {
 func (suite *ProductRepositoryTestSuite) TestPatch() {
 	suite.Run("should patch product fields successfully", func() {
 		// Arrange
-		original := models.NewProductMother().
+		original := models_mothers.NewProductMother().
 			WithSku("PATCH-001").
 			WithName("Original Name").
 			WithCategory("Original Category").
@@ -328,7 +332,7 @@ func (suite *ProductRepositoryTestSuite) TestPatch() {
 func (suite *ProductRepositoryTestSuite) TestDelete() {
 	suite.Run("should delete product successfully", func() {
 		// Arrange
-		product := models.NewProductMother().MustBuild()
+		product := models_mothers.NewProductMother().MustBuild()
 		err := suite.repo.Create(suite.ctx, product)
 		suite.Require().NoError(err)
 

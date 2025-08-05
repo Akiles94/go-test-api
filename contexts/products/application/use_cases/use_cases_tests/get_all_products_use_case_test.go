@@ -1,11 +1,14 @@
-package use_cases
+package use_cases_tests
 
 import (
 	"context"
 	"errors"
 	"testing"
 
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases"
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases/use_cases_mocks"
 	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,15 +16,15 @@ func GetAllProductsUseCase_Execute(t *testing.T) {
 	t.Run("should get all products successfully", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewGetAllProductsUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewGetAllProductsUseCase(mockRepo)
 
 		cursor := "someCursor"
 		limit := 10
 
 		expectedProducts := []models.Product{
-			models.NewProductMother().MustBuild(),
-			models.NewProductMother().MustBuild(),
+			models_mothers.NewProductMother().MustBuild(),
+			models_mothers.NewProductMother().MustBuild(),
 		}
 		nextCursor := "nextCursor"
 
@@ -40,8 +43,8 @@ func GetAllProductsUseCase_Execute(t *testing.T) {
 	t.Run("should return error when repository fails", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewGetAllProductsUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewGetAllProductsUseCase(mockRepo)
 
 		cursor := "someCursor"
 		limit := 10

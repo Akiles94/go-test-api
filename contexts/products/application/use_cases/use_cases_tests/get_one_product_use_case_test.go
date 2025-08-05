@@ -1,10 +1,12 @@
-package use_cases
+package use_cases_tests
 
 import (
 	"context"
 	"testing"
 
-	"github.com/Akiles94/go-test-api/contexts/products/domain/models"
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases"
+	"github.com/Akiles94/go-test-api/contexts/products/application/use_cases/use_cases_mocks"
+	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
 	shared_models "github.com/Akiles94/go-test-api/contexts/shared/domain/models"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -14,11 +16,11 @@ func GetOneProductUseCase_Execute(t *testing.T) {
 	t.Run("should return product by ID successfully", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewGetOneProductUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewGetOneProductUseCase(mockRepo)
 
 		productID := uuid.New()
-		expectedProduct := models.NewProductMother().MustBuild()
+		expectedProduct := models_mothers.NewProductMother().MustBuild()
 
 		mockRepo.On("GetByID", ctx, productID).Return(expectedProduct, nil)
 
@@ -34,8 +36,8 @@ func GetOneProductUseCase_Execute(t *testing.T) {
 	t.Run("should return error when product not found", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
-		mockRepo := NewMockProductRepository()
-		useCase := NewGetOneProductUseCase(mockRepo)
+		mockRepo := use_cases_mocks.NewMockProductRepository()
+		useCase := use_cases.NewGetOneProductUseCase(mockRepo)
 
 		productID := uuid.New()
 		expectedError := shared_models.DomainError{
