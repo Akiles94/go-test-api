@@ -1,8 +1,11 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install git and ca-certificates (needed for downloading dependencies)
 RUN apk add --no-cache git ca-certificates tzdata
+
+# Install swag for generating docs
+RUN go install github.com/swaggo/swag/cmd/swag@v1.8.6
 
 # Create appuser
 RUN adduser -D -g '' appuser
@@ -18,6 +21,9 @@ RUN go mod download
 
 # Copy source code
 COPY . .
+
+# Generate API documentation
+RUN swag init -g cmd/main.go -o ./docs
 
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o main cmd/main.go
