@@ -1,8 +1,9 @@
-package dto
+package dto_tests
 
 import (
 	"testing"
 
+	"github.com/Akiles94/go-test-api/contexts/products/application/dto"
 	"github.com/Akiles94/go-test-api/contexts/products/domain/models/models_mothers"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -11,7 +12,7 @@ import (
 func TestCreateProductRequest_ToDomainModel(t *testing.T) {
 	t.Run("should convert to domain model", func(t *testing.T) {
 		// Arrange
-		request := CreateProductRequest{
+		request := dto.CreateProductRequest{
 			Sku:      "DEFAULT-001",
 			Name:     "Default Product",
 			Category: "Electronics",
