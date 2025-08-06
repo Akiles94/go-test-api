@@ -42,13 +42,13 @@ cp .env.example .env
 
 ### 3. Run with Docker Compose
 
-# Start the complete application stack
+## Start the complete application stack
 
 ```bash
 docker-compose up -d
 ```
 
-# View logs
+## View logs
 
 ```bash
 docker-compose logs -f go-test-api
@@ -130,8 +130,8 @@ curl http://localhost:8080/health
 
 ## Security
 
-✅ Non-privileged user in container
-✅ Scratch-based image (minimal attack surface)
-✅ Externalized secrets
-✅ Configured rate limiting
-✅ Security headers
+- ✅ Non-privileged user in container
+- ✅ Scratch-based image (minimal attack surface)
+- ✅ Externalized secrets
+- ✅ Configured rate limiting
+- ✅ Security headers
