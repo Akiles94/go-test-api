@@ -8,7 +8,6 @@ A modern demo REST API built with Go, Gin, GORM, and PostgreSQL following Clean 
 - ✅ **Complete REST API** - Product CRUD operations with pagination
 - ✅ **Swagger Documentation** - Self-documented API
 - ✅ **Dockerized** - Simplified development and deployment
-- ✅ **Helm Chart** - Kubernetes-ready
 - ✅ **Middlewares** - Rate limiting, CORS, structured logging
 - ✅ **Health checks** - Monitoring and observability
 
@@ -19,7 +18,6 @@ A modern demo REST API built with Go, Gin, GORM, and PostgreSQL following Clean 
 - **Database:** PostgreSQL
 - **Documentation:** Swagger/OpenAPI
 - **Containers:** Docker + Docker Compose
-- **Orchestration:** Kubernetes + Helm
 
 ## 🚀 Quick Start
 
@@ -38,19 +36,23 @@ cd go-test-api
 
 ### 2. Set up env variables
 
+```bash
 cp .env.example .env
-
-# Edit .env with your configurations
+```
 
 ### 3. Run with Docker Compose
 
 # Start the complete application stack
 
+```bash
 docker-compose up -d
+```
 
 # View logs
 
+```bash
 docker-compose logs -f go-test-api
+```
 
 ### 4. Verify it's working
 
@@ -60,6 +62,7 @@ docker-compose logs -f go-test-api
 
 ### Project Structure
 
+```bash
 go-test-api/
 ├── cmd/ # Application entry point
 │ └── main.go
@@ -84,37 +87,48 @@ go-test-api/
 ├── Dockerfile # Production image
 ├── docker-compose.yaml # Development environment
 └── README.md
+```
 
-### Local development
+# Local development
 
-# Install dependencies
+## Install dependencies
 
+```bash
 go mod download
+```
 
-# Generate Swagger documentation
+## Generate Swagger documentation
 
+```bash
 swag init -g cmd/main.go -o ./docs
+```
 
-# Run the application with hot reload
+## Run the application with hot reload
 
+```bash
 make dev
+```
 
-### 🧪 Testing
+## 🧪 Testing
 
+```bash
 make test
+```
 
-### 🧪 Health check
+## 🧪 Health check
 
+```bash
 curl http://localhost:8080/health
+```
 
-### Basic metrics
+## Basic metrics
 
 - Structured logging
 - Rate limiting
 - Request ID tracking
 - Recovery middleware
 
-### Security
+## Security
 
 ✅ Non-privileged user in container
 ✅ Scratch-based image (minimal attack surface)
