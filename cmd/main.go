@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/Akiles94/go-test-api/config"
-	"github.com/Akiles94/go-test-api/contexts/products/infra/adapters"
-	"github.com/Akiles94/go-test-api/contexts/products/infra/modules"
+	"github.com/Akiles94/go-test-api/contexts/product/infra/adapters"
+	"github.com/Akiles94/go-test-api/contexts/product/infra/modules"
 	"github.com/Akiles94/go-test-api/contexts/shared/application/interfaces"
 	"github.com/Akiles94/go-test-api/contexts/shared/infra/middlewares"
 	"github.com/Akiles94/go-test-api/db"
