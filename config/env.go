@@ -9,14 +9,16 @@ import (
 )
 
 type EnvConfig struct {
-	DBHost         string
-	DBPort         string
-	DBUser         string
-	DBPassword     string
-	DBName         string
-	ApiPort        string
-	Mode           string
-	RateLimitCount int
+	DBHost                   string
+	DBPort                   string
+	DBUser                   string
+	DBPassword               string
+	DBName                   string
+	ApiPort                  string
+	Mode                     string
+	RateLimitCount           int
+	JWTSecret                string
+	JWTRefreshExpirationDays int
 }
 
 var Env *EnvConfig
@@ -37,5 +39,10 @@ func LoadEnv() {
 		ApiPort:        os.Getenv("API_PORT"),
 		Mode:           os.Getenv("MODE"),
 		RateLimitCount: rateLimitCount,
+		JWTSecret:      os.Getenv("JWT_SECRET"),
+		JWTRefreshExpirationDays: func() int {
+			val, _ := strconv.Atoi(os.Getenv("JWT_REFRESH_EXPIRATION_DAYS"))
+			return val
+		}(),
 	}
 }
