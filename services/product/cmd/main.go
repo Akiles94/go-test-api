@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
-	"github.com/Akiles94/go-test-api/config"
-	"github.com/Akiles94/go-test-api/db"
+	"github.com/Akiles94/go-test-api/services/product/config"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/modules"
+	"github.com/Akiles94/go-test-api/services/product/db"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
 	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
 	"github.com/gin-gonic/gin"
@@ -52,8 +52,6 @@ func main() {
 	router.Use(middlewares.RecoveryMiddleware())
 	router.Use(middlewares.StructuredLogger())
 	router.Use(middlewares.SecurityHeadersMiddleware())
-	router.Use(middlewares.CORSMiddleware())
-	router.Use(middlewares.RateLimitMiddleware())
 	router.Use(middlewares.ErrorHandlerMiddleware())
 
 	router.GET("/health", func(c *gin.Context) {

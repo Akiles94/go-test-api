@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Akiles94/go-test-api/config"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
@@ -45,8 +44,8 @@ func (rl *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	return limiter
 }
 
-func RateLimitMiddleware() gin.HandlerFunc {
-	limiter := NewIPRateLimiter(rate.Every(time.Minute), config.Env.RateLimitCount)
+func RateLimitMiddleware(rateCount int) gin.HandlerFunc {
+	limiter := NewIPRateLimiter(rate.Every(time.Minute), rateCount)
 
 	return func(c *gin.Context) {
 		ip := c.ClientIP()

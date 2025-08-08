@@ -3,7 +3,6 @@ package shared_adapters
 import (
 	"errors"
 
-	"github.com/Akiles94/go-test-api/config"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
 	"github.com/Akiles94/go-test-api/shared/domain/value_objects"
 	"github.com/golang-jwt/jwt/v5"
@@ -13,9 +12,9 @@ type JWTService struct {
 	secretKey []byte
 }
 
-func NewJWTService() shared_ports.JWTServicePort {
+func NewJWTService(secretValue string) shared_ports.JWTServicePort {
 	return &JWTService{
-		secretKey: []byte(config.Env.JWTSecret),
+		secretKey: []byte(secretValue),
 	}
 }
 

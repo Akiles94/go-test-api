@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Akiles94/go-test-api/config"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
 	"github.com/Akiles94/go-test-api/shared/domain/value_objects"
 	"github.com/golang-jwt/jwt/v5"
@@ -15,7 +14,8 @@ import (
 const oneDayInHours = 24
 
 type AuthService struct {
-	jwtService shared_ports.JWTServicePort
+	jwtService               shared_ports.JWTServicePort
+	JWTRefreshExpirationDays int
 }
 
 func NewAuthService(jwtService shared_ports.JWTServicePort) shared_ports.AuthServicePort {
@@ -65,7 +65,7 @@ func (a *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*v
 }
 
 func (a *AuthService) GenerateRefreshToken(ctx context.Context, userID uuid.UUID, email string) (*value_objects.JWTToken, error) {
-	expirationTime := time.Now().Add(time.Duration(config.Env.JWTRefreshExpirationDays) * oneDayInHours * time.Hour)
+	expirationTime := time.Now().Add(time.Duration(a.JWTRefreshExpirationDays) * oneDayInHours * time.Hour)
 
 	claims := &value_objects.UserClaims{
 		UserID:    userID,

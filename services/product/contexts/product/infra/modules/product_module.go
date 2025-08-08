@@ -1,9 +1,13 @@
 package modules
 
 import (
+	"context"
+
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/application/use_cases"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/handlers"
+	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
+	"github.com/Akiles94/go-test-api/shared/domain/value_objects"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -38,4 +42,51 @@ func (pm *ProductModule) RegisterRoutes(router *gin.RouterGroup) {
 	router.PUT("/:id", pm.handler.Update)
 	router.PATCH("/:id", pm.handler.Patch)
 	router.DELETE("/:id", pm.handler.Delete)
+}
+
+func (m *ProductModule) GetServiceInfo() value_objects.ServiceInfo {
+	return value_objects.ServiceInfo{
+		Name:    "product-service",
+		URL:     "http://localhost:8081", // or from config
+		Health:  "/health",
+		Version: "1.0.0",
+		Status:  "healthy",
+		Routes: []value_objects.RouteDefinition{
+			{
+				Method:    "GET",
+				Path:      "/products",
+				Protected: false,
+				RateLimit: 100,
+			},
+			{
+				Method:    "POST",
+				Path:      "/products",
+				Protected: true,
+				RateLimit: 50,
+			},
+			{
+				Method:    "GET",
+				Path:      "/products/:id",
+				Protected: false,
+				RateLimit: 200,
+			},
+			{
+				Method:    "PUT",
+				Path:      "/products/:id",
+				Protected: true,
+				RateLimit: 30,
+			},
+			{
+				Method:    "DELETE",
+				Path:      "/products/:id",
+				Protected: true,
+				RateLimit: 10,
+			},
+		},
+	}
+}
+
+func (pm *ProductModule) RegisterWithGateway(ctx context.Context, registry shared_ports.ServiceRegistryPort) error {
+	serviceInfo := pm.GetServiceInfo()
+	return registry.Register(ctx, serviceInfo)
 }

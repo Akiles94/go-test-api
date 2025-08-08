@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Akiles94/go-test-api/config"
+	"github.com/Akiles94/go-test-api/services/product/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
