@@ -1,68 +1,105 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net"
 
 	"github.com/Akiles94/go-test-api/gateway/config"
 	"github.com/Akiles94/go-test-api/gateway/routes"
-	"github.com/Akiles94/go-test-api/shared/domain/value_objects"
-	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
-	"github.com/Akiles94/go-test-api/shared/infra/shared_adapters"
+	"github.com/Akiles94/go-test-api/shared/infra/grpc/gen/registry"
+	grpc_services "github.com/Akiles94/go-test-api/shared/infra/grpc/services"
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	config.LoadEnv()
+	log.Println("🚀 Starting Gateway...")
 
-	if config.Env.Mode == "release" {
-		gin.SetMode(gin.ReleaseMode)
+	// 1. Create gRPC Service Registry Server
+	serviceRegistryServer := grpc_services.NewServiceRegistryServer()
+
+	// 2. Start gRPC server in goroutine
+	go startGRPCServer(serviceRegistryServer)
+
+	// 3. Create HTTP router with Gin
+	router := gin.Default()
+
+	// 4. Configure middleware
+	router.Use(func(c *gin.Context) {
+		c.Header("X-Gateway", "go-test-api")
+		c.Next()
+	})
+
+	// 5. Configure static routes
+	setupGatewayRoutes(router, serviceRegistryServer)
+
+	// 6. Configure dynamic routes
+	dynamicRouter := routes.NewDynamicRouter(router, serviceRegistryServer)
+	go dynamicRouter.WatchServices() // Watch for service changes
+
+	// 7. Init HTTP server
+	log.Println("🌐 HTTP Gateway server starting on :", config.Env.ApiPort)
+	if err := router.Run(fmt.Sprintf(":%s", config.Env.ApiPort)); err != nil {
+		log.Fatalf("❌ Failed to start HTTP server: %v", err)
+	}
+}
+
+func startGRPCServer(serviceRegistryServer *grpc_services.ServiceRegistryServer) {
+	// Create gRPC listener
+	grpcAddress := fmt.Sprintf("%s:%s", config.Env.GRPCHost, config.Env.GRPCPort)
+	lis, err := net.Listen("tcp", grpcAddress)
+	if err != nil {
+		log.Fatalf("❌ Failed to listen on port %s: %v", config.Env.GRPCPort, err)
 	}
 
-	// Services
-	jwtService := shared_adapters.NewJWTService(config.Env.JWTSecret)
-	authService := shared_adapters.NewAuthService(jwtService)
+	// Create gRPC server
+	grpcServer := grpc.NewServer()
 
-	// Service registry (in-memory for start, could be Redis/Consul later)
-	registry := shared_adapters.NewInMemoryServiceRegistry()
+	// Register the service registry server
+	registry.RegisterServiceRegistryServer(grpcServer, serviceRegistryServer)
 
-	router := gin.New()
+	log.Printf("🔌 gRPC Service Registry server starting on %s", grpcAddress)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("❌ Failed to serve gRPC: %v", err)
+	}
+}
 
-	// Static middlewares
-	router.Use(middlewares.CORSMiddleware())
-	router.Use(middlewares.StructuredLogger())
-	router.Use(middlewares.SecurityHeadersMiddleware())
-	router.Use(middlewares.ErrorHandlerMiddleware())
+func setupGatewayRoutes(router *gin.Engine, serviceRegistry *grpc_services.ServiceRegistryServer) {
+	// Gateway admin routes
+	admin := router.Group("/gateway")
 
-	// Health and docs (static routes)
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok", "service": "api-gateway"})
-	})
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	// Dynamic routes setup
-	dynamicRouter := routes.NewDynamicRouter(registry, authService)
-	dynamicRouter.SetupRoutes(router)
-
-	// Start discovery endpoint for services to register
-	router.POST("/gateway/register", func(c *gin.Context) {
-		var serviceInfo value_objects.ServiceInfo
-		if err := c.ShouldBindJSON(&serviceInfo); err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err := registry.Register(c.Request.Context(), serviceInfo); err != nil {
+	// Endpoint to see all registered services
+	admin.GET("/services", func(c *gin.Context) {
+		services, err := serviceRegistry.GetServices(c.Request.Context(), &registry.GetServicesRequest{})
+		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(200, gin.H{"message": "service registered successfully"})
+		c.JSON(200, gin.H{
+			"total_services": len(services.Services),
+			"services":       services.Services,
+		})
 	})
 
-	log.Printf("🚀 API Gateway starting on port %s", config.Env.ApiPort)
-	if err := router.Run(":" + config.Env.ApiPort); err != nil {
-		log.Fatalf("❌ Error starting server: %v", err)
-	}
+	// Health check del Gateway
+	admin.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"service": "gateway",
+			"version": "1.0.0",
+		})
+	})
+
+	// Gateway info endpoint
+	admin.GET("/info", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"service":     "go-test-api-gateway",
+			"version":     "1.0.0",
+			"grpc_port":   config.Env.GRPCPort,
+			"http_port":   config.Env.ApiPort,
+			"description": "API Gateway with gRPC service registry",
+		})
+	})
 }

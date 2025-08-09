@@ -29,12 +29,12 @@ func LoadEnv() {
 	}
 
 	Env = &EnvConfig{
-		DBHost:     os.Getenv("PRODUCT_DB_HOST"),
-		DBPort:     os.Getenv("PRODUCT_DB_PORT"),
-		DBUser:     os.Getenv("PRODUCT_DB_USER"),
-		DBPassword: os.Getenv("PRODUCT_DB_PASSWORD"),
-		DBName:     os.Getenv("PRODUCT_DB_NAME"),
-		ApiPort:    os.Getenv("PRODUCT_API_PORT"),
+		DBHost:     os.Getenv("DB_HOST"),
+		DBPort:     os.Getenv("DB_PORT"),
+		DBUser:     os.Getenv("DB_USER"),
+		DBPassword: os.Getenv("DB_PASSWORD"),
+		DBName:     os.Getenv("DB_NAME"),
+		ApiPort:    os.Getenv("API_PORT"),
 		Mode:       os.Getenv("MODE"),
 	}
 }

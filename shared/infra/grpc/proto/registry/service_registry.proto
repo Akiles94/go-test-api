@@ -1,0 +1,90 @@
+// gateway/proto/registry/service_registry.proto
+syntax = "proto3";
+
+package gateway.registry;
+
+option go_package = "github.com/Akiles94/go-test-api/gateway/gen/registry";
+
+import "google/protobuf/timestamp.proto";
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 SERVICE - Only service registry functions
+// ═══════════════════════════════════════════════════════════
+service ServiceRegistry {
+  rpc RegisterService(RegisterServiceRequest) returns (RegisterServiceResponse);
+  rpc DeregisterService(DeregisterServiceRequest) returns (DeregisterServiceResponse);
+  rpc GetServices(GetServicesRequest) returns (GetServicesResponse);
+  rpc WatchServices(WatchServicesRequest) returns (stream ServiceUpdate);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📦 MESSAGES - Data structures
+// ═══════════════════════════════════════════════════════════
+
+message ServiceInfo {
+  string name = 1;
+  string url = 2;
+  string health_endpoint = 3;
+  string version = 4;
+  ServiceStatus status = 5;
+  repeated RouteInfo routes = 6;
+  google.protobuf.Timestamp registered_at = 7;
+  map<string, string> metadata = 8;
+}
+
+message RouteInfo {
+  string method = 1;        // GET, POST, PUT, DELETE
+  string path = 2;          // /products, /users/:id
+  bool protected = 3;       // Requires authentication
+  int32 rate_limit = 5;     // Requests per minute
+}
+
+enum ServiceStatus {
+  SERVICE_STATUS_UNKNOWN = 0;
+  SERVICE_STATUS_HEALTHY = 1;
+  SERVICE_STATUS_UNHEALTHY = 2;
+  SERVICE_STATUS_STARTING = 3;
+}
+
+enum ServiceUpdateType {
+  SERVICE_UPDATE_TYPE_ADDED = 0;
+  SERVICE_UPDATE_TYPE_UPDATED = 1;
+  SERVICE_UPDATE_TYPE_REMOVED = 2;
+}
+
+// Request/Response messages
+message RegisterServiceRequest {
+  ServiceInfo service = 1;
+}
+
+message RegisterServiceResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeregisterServiceRequest {
+  string service_name = 1;
+}
+
+message DeregisterServiceResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetServicesRequest {
+  // Empty for now could be used for filtering in the future
+}
+
+message GetServicesResponse {
+  repeated ServiceInfo services = 1;
+}
+
+message WatchServicesRequest {
+  // Empty for now
+}
+
+message ServiceUpdate {
+  ServiceUpdateType event_type = 1;
+  ServiceInfo service = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}

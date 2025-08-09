@@ -14,6 +14,8 @@ type EnvConfig struct {
 	RateLimitCount           int
 	JWTSecret                string
 	JWTRefreshExpirationDays int
+	GRPCHost                 string
+	GRPCPort                 string
 }
 
 var Env *EnvConfig
@@ -31,5 +33,7 @@ func LoadEnv() {
 		RateLimitCount:           rateLimitCount,
 		JWTSecret:                os.Getenv("JWT_SECRET"),
 		JWTRefreshExpirationDays: jwtRefreshExpirationDays,
+		GRPCPort:                 os.Getenv("GRPC_PORT"),
+		GRPCHost:                 os.Getenv("GRPC_HOST"),
 	}
 }

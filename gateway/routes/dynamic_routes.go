@@ -1,156 +1,231 @@
+// gateway/routes/dynamic_routes.go
 package routes
 
 import (
-	"context"
-	"fmt"
 	"log"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"sync"
 
-	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
-	"github.com/Akiles94/go-test-api/shared/domain/value_objects"
-	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
+	"github.com/Akiles94/go-test-api/shared/infra/grpc/gen/registry"
+	grpc_services "github.com/Akiles94/go-test-api/shared/infra/grpc/services"
 	"github.com/gin-gonic/gin"
 )
 
 type DynamicRouter struct {
-	registry    shared_ports.ServiceRegistryPort
-	authService shared_ports.AuthServicePort
-	router      *gin.Engine
-	services    map[string]value_objects.ServiceInfo
+	router           *gin.Engine
+	apiGroup         *gin.RouterGroup
+	serviceRegistry  *grpc_services.ServiceRegistryServer
+	sharedProxy      *httputil.ReverseProxy
+	routeToService   map[string]*registry.ServiceInfo // ← route_key -> service info
+	registeredRoutes map[string][]string              // service_name -> [routes]
+	mutex            sync.RWMutex
 }
 
-func NewDynamicRouter(registry shared_ports.ServiceRegistryPort, authService shared_ports.AuthServicePort) *DynamicRouter {
+// NewDynamicRouter creates a new dynamic router instance
+func NewDynamicRouter(router *gin.Engine, serviceRegistry *grpc_services.ServiceRegistryServer) *DynamicRouter {
+	// Create a shared proxy with custom director
+	sharedProxy := &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			// Director will be set per request in the handler
+		},
+		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			log.Printf("Proxy error: %v", err)
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte(`{"error": "service unavailable"}`))
+		},
+	}
 	return &DynamicRouter{
-		registry:    registry,
-		authService: authService,
-		services:    make(map[string]value_objects.ServiceInfo),
+		router:           router,
+		apiGroup:         router.Group("/api/v1"),
+		serviceRegistry:  serviceRegistry,
+		sharedProxy:      sharedProxy,
+		registeredRoutes: make(map[string][]string),
 	}
 }
 
-func (dr *DynamicRouter) SetupRoutes(router *gin.Engine) {
-	dr.router = router
+// handleServiceUpdate processes service change notifications
+func (dr *DynamicRouter) handleServiceUpdate(update *registry.ServiceUpdate) {
+	dr.mutex.Lock()
+	defer dr.mutex.Unlock()
 
-	// Load initial services
-	dr.loadServices()
+	switch update.EventType {
+	case registry.ServiceUpdateType_SERVICE_UPDATE_TYPE_ADDED:
+		log.Printf("Adding service: %s", update.Service.Name)
+		dr.addServiceRoutes(update.Service)
 
-	// Watch for changes
-	go dr.watchServices()
+	case registry.ServiceUpdateType_SERVICE_UPDATE_TYPE_REMOVED:
+		log.Printf("Removing service: %s", update.Service.Name)
+		dr.removeServiceRoutes(update.Service.Name)
+
+	case registry.ServiceUpdateType_SERVICE_UPDATE_TYPE_UPDATED:
+		log.Printf("Updating service: %s", update.Service.Name)
+		dr.updateServiceRoutes(update.Service)
+	default:
+		log.Printf("⚠️ Unknown update event type: %v for service %s", update.EventType, update.Service.Name)
+	}
 }
 
-func (dr *DynamicRouter) loadServices() {
-	services, err := dr.registry.GetServices(context.Background())
+// addServiceRoutes dynamically adds routes for a service
+func (dr *DynamicRouter) addServiceRoutes(service *registry.ServiceInfo) {
+	// Parse service URL
+	_, err := url.Parse(service.Url)
 	if err != nil {
-		log.Printf("❌ Failed to load services: %v", err)
+		log.Printf("Invalid service URL for %s: %v", service.Name, err)
 		return
 	}
 
-	api := dr.router.Group("/api/v1")
+	// Use existing API group
+	var addedRoutes []string
 
-	for _, service := range services {
-		dr.registerServiceRoutes(api, service)
-		dr.services[service.Name] = service
-	}
-
-	log.Printf("✅ Loaded %d services", len(services))
-}
-
-func (dr *DynamicRouter) registerServiceRoutes(api *gin.RouterGroup, service value_objects.ServiceInfo) {
+	// Register specific routes if defined
 	for _, route := range service.Routes {
-		// Create route path
-		fullPath := route.Path
 
-		log.Printf("📡 Registering route: %s %s -> %s", route.Method, fullPath, service.URL)
+		// Check for route conflicts BEFORE adding
+		routeKey := route.Method + " " + route.Path
+		if dr.routeExists(routeKey) {
+			log.Printf("⚠️ Route conflict detected: %s (skipping)", routeKey)
+			continue
+		}
 
-		// Create handler with middleware chain
-		handler := dr.createHandler(service)
+		dr.routeToService[routeKey] = service
+		handler := dr.createSharedProxyHandler(routeKey)
 
-		// Add middleware based on route definition
-		middlewares := dr.buildMiddlewares(route)
+		// Add middleware if needed
+		if route.Protected {
+			handler = dr.authMiddleware(handler)
+		}
+		if route.RateLimit > 0 {
+			handler = dr.rateLimitMiddleware(route.RateLimit, handler)
+		}
 
-		// Register route
+		// Register route based on HTTP method
 		switch strings.ToUpper(route.Method) {
 		case "GET":
-			api.GET(fullPath, middlewares...).GET(fullPath, handler)
+			dr.apiGroup.GET(route.Path, handler)
 		case "POST":
-			api.POST(fullPath, middlewares...).POST(fullPath, handler)
+			dr.apiGroup.POST(route.Path, handler)
 		case "PUT":
-			api.PUT(fullPath, middlewares...).PUT(fullPath, handler)
+			dr.apiGroup.PUT(route.Path, handler)
 		case "DELETE":
-			api.DELETE(fullPath, middlewares...).DELETE(fullPath, handler)
+			dr.apiGroup.DELETE(route.Path, handler)
 		case "PATCH":
-			api.PATCH(fullPath, middlewares...).PATCH(fullPath, handler)
-		}
-	}
-}
-
-func (dr *DynamicRouter) createHandler(service value_objects.ServiceInfo) gin.HandlerFunc {
-	targetURL, _ := url.Parse(service.URL)
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
-
-	return func(c *gin.Context) {
-		// Forward user context headers
-		if userID, exists := c.Get("user_id"); exists {
-			c.Request.Header.Set("X-User-ID", fmt.Sprintf("%v", userID))
-		}
-		if userEmail, exists := c.Get("user_email"); exists {
-			c.Request.Header.Set("X-User-Email", fmt.Sprintf("%v", userEmail))
+			dr.apiGroup.PATCH(route.Path, handler)
+		default:
+			dr.apiGroup.Any(route.Path, handler)
 		}
 
-		// Add service info headers
-		c.Request.Header.Set("X-Service-Name", service.Name)
-		c.Request.Header.Set("X-Service-Version", service.Version)
-
-		proxy.ServeHTTP(c.Writer, c.Request)
+		addedRoutes = append(addedRoutes, routeKey)
+		log.Printf("   Added route: %s %s -> %s", route.Method, route.Path, service.Url)
 	}
+
+	// Track registered routes for later removal
+	dr.registeredRoutes[service.Name] = addedRoutes
+
+	log.Printf("Service %s registered with %d routes", service.Name, len(addedRoutes))
 }
 
-func (dr *DynamicRouter) buildMiddlewares(route value_objects.RouteDefinition) []gin.HandlerFunc {
-	var middlewareChain []gin.HandlerFunc
-
-	// Auth middleware
-	if route.Protected {
-		middlewareChain = append(middlewareChain, middlewares.AuthMiddleware(dr.authService))
-	}
-
-	// Rate limiting middleware
-	if route.RateLimit > 0 {
-		middlewareChain = append(middlewareChain, middlewares.RateLimitMiddleware(route.RateLimit))
-	}
-
-	// Timeout middleware
-	// if route.Timeout > 0 {
-	//     middlewareChain = append(middlewareChain, middlewares.TimeoutMiddleware(time.Duration(route.Timeout)*time.Second))
-	// }
-
-	return middlewareChain
-}
-
-func (dr *DynamicRouter) watchServices() {
-	watch, err := dr.registry.Watch(context.Background())
-	if err != nil {
-		log.Printf("❌ Failed to watch services: %v", err)
-		return
-	}
-
-	for services := range watch {
-		log.Println("🔄 Services changed, reloading routes...")
-		dr.reloadRoutes(services)
-	}
-}
-
-func (dr *DynamicRouter) reloadRoutes(services []value_objects.ServiceInfo) {
-	// Clear existing routes (you'd need to implement this)
-	// For now, just log the change
-	for _, service := range services {
-		if existing, exists := dr.services[service.Name]; exists {
-			if existing.Version != service.Version {
-				log.Printf("🔄 Service %s updated: %s -> %s", service.Name, existing.Version, service.Version)
+// Helper method to check route conflicts
+func (dr *DynamicRouter) routeExists(routeKey string) bool {
+	for _, routes := range dr.registeredRoutes {
+		for _, route := range routes {
+			if route == routeKey {
+				return true
 			}
-		} else {
-			log.Printf("🆕 New service discovered: %s", service.Name)
 		}
-		dr.services[service.Name] = service
+	}
+	return false
+}
+
+// removeServiceRoutes removes all routes for a service
+func (dr *DynamicRouter) removeServiceRoutes(serviceName string) {
+	// Remove route mappings for this service
+	routes, exists := dr.registeredRoutes[serviceName]
+	if exists {
+		delete(dr.registeredRoutes, serviceName)
+		log.Printf("Service %s removed (%d routes)", serviceName, len(routes))
+	}
+}
+
+// updateServiceRoutes updates routes for a service
+func (dr *DynamicRouter) updateServiceRoutes(service *registry.ServiceInfo) {
+	// Remove old routes and add new ones
+	dr.removeServiceRoutes(service.Name)
+	dr.addServiceRoutes(service)
+}
+
+func (dr *DynamicRouter) createSharedProxyHandler(routeKey string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get service info for this specific route
+		dr.mutex.RLock()
+		service, exists := dr.routeToService[routeKey]
+		dr.mutex.RUnlock()
+
+		if !exists {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "route no longer available",
+				"route": routeKey,
+			})
+			return
+		}
+
+		// Parse service URL
+		serviceURL, err := url.Parse(service.Url)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "invalid service configuration",
+			})
+			return
+		}
+
+		// Add service information headers
+		c.Header("X-Service-Name", service.Name)
+		c.Header("X-Service-Version", service.Version)
+
+		// Create a custom director for this request
+		dr.sharedProxy.Director = func(req *http.Request) {
+			req.URL.Scheme = serviceURL.Scheme
+			req.URL.Host = serviceURL.Host
+			// Keep the original path - NO modifications
+			// /api/v1/products stays as /products on the service
+			req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api/v1")
+			if req.URL.Path == "" {
+				req.URL.Path = "/"
+			}
+
+			// Preserve query parameters
+			if serviceURL.RawQuery == "" || req.URL.RawQuery == "" {
+				req.URL.RawQuery = serviceURL.RawQuery + req.URL.RawQuery
+			} else {
+				req.URL.RawQuery = serviceURL.RawQuery + "&" + req.URL.RawQuery
+			}
+		}
+
+		// Proxy the request to the service
+		dr.sharedProxy.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+// authMiddleware provides simple authentication middleware
+func (dr *DynamicRouter) authMiddleware(next gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(401, gin.H{"error": "authorization required"})
+			c.Abort()
+			return
+		}
+		next(c)
+	}
+}
+
+// rateLimitMiddleware provides simple rate limiting middleware
+func (dr *DynamicRouter) rateLimitMiddleware(limit int32, next gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Simple rate limiting implementation (add proper rate limiting later)
+		c.Header("X-Rate-Limit", string(rune(limit)))
+		next(c)
 	}
 }
