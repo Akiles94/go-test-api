@@ -1,20 +1,19 @@
-// gateway/proto/registry/service_registry.proto
 syntax = "proto3";
 
-package gateway.registry;
+package shared.registry;  // ← Cambiar de gateway.registry a shared.registry
 
-option go_package = "github.com/Akiles94/go-test-api/gateway/gen/registry";
+option go_package = "github.com/Akiles94/go-test-api/shared/gen/registry";  // ← Cambiar path
 
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 // ═══════════════════════════════════════════════════════════
-// 🎯 SERVICE - Only service registry functions
+// 🎯 SERVICE - Service registry functions
 // ═══════════════════════════════════════════════════════════
 service ServiceRegistry {
   rpc RegisterService(RegisterServiceRequest) returns (RegisterServiceResponse);
   rpc DeregisterService(DeregisterServiceRequest) returns (DeregisterServiceResponse);
-  rpc GetServices(GetServicesRequest) returns (GetServicesResponse);
-  rpc WatchServices(WatchServicesRequest) returns (stream ServiceUpdate);
+  rpc GetServices(google.protobuf.Empty) returns (GetServicesResponse);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -36,7 +35,7 @@ message RouteInfo {
   string method = 1;        // GET, POST, PUT, DELETE
   string path = 2;          // /products, /users/:id
   bool protected = 3;       // Requires authentication
-  int32 rate_limit = 5;     // Requests per minute
+  int32 rate_limit = 4;     
 }
 
 enum ServiceStatus {
@@ -44,6 +43,13 @@ enum ServiceStatus {
   SERVICE_STATUS_HEALTHY = 1;
   SERVICE_STATUS_UNHEALTHY = 2;
   SERVICE_STATUS_STARTING = 3;
+}
+
+enum UpdateType {
+  UPDATE_TYPE_UNSPECIFIED = 0;
+  UPDATE_TYPE_REGISTER = 1;
+  UPDATE_TYPE_DEREGISTER = 2;
+  UPDATE_TYPE_UPDATE = 3;
 }
 
 enum ServiceUpdateType {
@@ -71,20 +77,13 @@ message DeregisterServiceResponse {
   string message = 2;
 }
 
-message GetServicesRequest {
-  // Empty for now could be used for filtering in the future
-}
-
 message GetServicesResponse {
   repeated ServiceInfo services = 1;
 }
 
-message WatchServicesRequest {
-  // Empty for now
-}
-
 message ServiceUpdate {
-  ServiceUpdateType event_type = 1;
-  ServiceInfo service = 2;
-  google.protobuf.Timestamp timestamp = 3;
+  ServiceUpdateType event_type = 1;  
+  UpdateType type = 2;               
+  ServiceInfo service = 3;           
+  google.protobuf.Timestamp timestamp = 4; 
 }

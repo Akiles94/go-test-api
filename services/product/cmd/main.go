@@ -1,19 +1,24 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/Akiles94/go-test-api/services/product/config"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/modules"
 	"github.com/Akiles94/go-test-api/services/product/db"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
+	grpc_services "github.com/Akiles94/go-test-api/shared/infra/grpc/services"
 	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	_ "github.com/Akiles94/go-test-api/docs"
 )
 
 // @title Go Test API
@@ -32,50 +37,108 @@ import (
 // @BasePath /api/v1
 // @schemes http https
 func main() {
+	// Load configuration
 	config.LoadEnv()
 
+	// Set Gin mode
+	if config.Env.Mode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	// Initialize database
 	database := db.Connect()
 
 	if err := database.AutoMigrate(&adapters.ProductEntity{}); err != nil {
 		log.Fatalf("❌ DB migration failed: %v", err)
 	}
 
-	if config.Env.Mode == "release" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
+	// Initialize router
 	router := gin.New()
 
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	router.Use(middlewares.RequestIDMiddleware())
-	router.Use(middlewares.RecoveryMiddleware())
+	// Add middlewares
 	router.Use(middlewares.StructuredLogger())
+	router.Use(middlewares.RecoveryMiddleware())
+	router.Use(middlewares.CORSMiddleware())
+	router.Use(middlewares.RequestIDMiddleware())
 	router.Use(middlewares.SecurityHeadersMiddleware())
-	router.Use(middlewares.ErrorHandlerMiddleware())
 
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok", "service": "go-test-api"})
-	})
-	router.GET("/swagger", func(c *gin.Context) {
-		c.Redirect(302, "/swagger/index.html")
-	})
-	api := router.Group("/api/v1")
+	var contextModules []shared_ports.ModulePort
 
-	var appModules []shared_ports.ModulePort
-
+	// Product module
 	productModule := modules.NewProductModule(database)
-	appModules = append(appModules, productModule)
+	contextModules = append(contextModules, productModule)
 
-	for _, m := range appModules {
-		switch mod := m.(type) {
+	serviceRegistryConfig := grpc_services.ServiceRegistryConfig{
+		GatewayAddress: config.Env.GatewayGRPCAddress,
+		Context:        context.Background(),
+		ServiceName:    "product-service",
+		ServiceVersion: "v1.0.0",
+		ServiceURL:     fmt.Sprintf("http://%s:%s", config.Env.ServiceHost, config.Env.ApiPort),
+		HealthEndpoint: "/health",
+		Modules:        contextModules,
+	}
+
+	serviceRegistry, err := grpc_services.NewServiceRegistry(serviceRegistryConfig)
+	if err != nil {
+		log.Printf("⚠️ Failed to create service registry: %v", err)
+		return
+	}
+
+	registerModuleRoutes(router, contextModules)
+
+	if err := serviceRegistry.RegisterWithGateway(serviceRegistryConfig); err != nil {
+		log.Printf("⚠️ Failed to register with gateway: %v", err)
+		log.Printf("Continuing without gateway registration...")
+	}
+
+	// Graceful shutdown setup
+	defer func() {
+		if err := serviceRegistry.DeregisterFromGateway(); err != nil {
+			log.Printf("⚠️ Failed to deregister from gateway: %v", err)
+		}
+	}()
+
+	// Start server
+	startServer(router)
+}
+
+func registerModuleRoutes(router *gin.Engine, contextModules []shared_ports.ModulePort) {
+	for _, module := range contextModules {
+		switch mod := module.(type) {
 		case *modules.ProductModule:
-			mod.RegisterRoutes(api.Group("/products"))
+			mod.RegisterRoutes(router.Group("/products"))
 		}
 	}
+}
 
-	log.Printf("🚀 Server starting on port %s", config.Env.ApiPort)
-	if err := router.Run(":" + config.Env.ApiPort); err != nil {
-		log.Fatalf("❌ Error starting server: %v", err)
+func startServer(router *gin.Engine) {
+	server := &http.Server{
+		Addr:         ":" + config.Env.ApiPort,
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
+
+	go func() {
+		log.Printf("🚀 Product service starting on port %s", config.Env.ApiPort)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed to start: %v", err)
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("🛑 Shutting down product service...")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("✅ Product service stopped gracefully")
 }

@@ -9,20 +9,52 @@ import (
 	"github.com/Akiles94/go-test-api/shared/infra/grpc/gen/registry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ServiceRegistryServer struct {
 	registry.UnimplementedServiceRegistryServer
-	services map[string]*registry.ServiceInfo
-	mutex    sync.RWMutex
-	watchers []chan *registry.ServiceUpdate
+	services        map[string]*registry.ServiceInfo
+	mutex           sync.RWMutex
+	updateListeners []chan<- *registry.ServiceUpdate
 }
 
 func NewServiceRegistryServer() *ServiceRegistryServer {
 	return &ServiceRegistryServer{
-		services: make(map[string]*registry.ServiceInfo),
-		watchers: make([]chan *registry.ServiceUpdate, 0),
+		services:        make(map[string]*registry.ServiceInfo),
+		updateListeners: make([]chan<- *registry.ServiceUpdate, 0),
+	}
+}
+
+func (srs *ServiceRegistryServer) RegisterUpdateListener(ch chan<- *registry.ServiceUpdate) {
+	srs.mutex.Lock()
+	defer srs.mutex.Unlock()
+
+	srs.updateListeners = append(srs.updateListeners, ch)
+	log.Printf("📢 Registered new update listener (total: %d)", len(srs.updateListeners))
+}
+
+func (srs *ServiceRegistryServer) UnregisterUpdateListener(ch chan<- *registry.ServiceUpdate) {
+	srs.mutex.Lock()
+	defer srs.mutex.Unlock()
+
+	for i, listener := range srs.updateListeners {
+		if listener == ch {
+			srs.updateListeners = append(srs.updateListeners[:i], srs.updateListeners[i+1:]...)
+			log.Printf("📢 Unregistered update listener (total: %d)", len(srs.updateListeners))
+			break
+		}
+	}
+}
+
+func (srs *ServiceRegistryServer) notifyUpdateListeners(update *registry.ServiceUpdate) {
+	for i, listener := range srs.updateListeners {
+		select {
+		case listener <- update:
+		default:
+			log.Printf("⚠️ Update listener %d channel is full, skipping notification", i)
+		}
 	}
 }
 
@@ -66,8 +98,12 @@ func (srs *ServiceRegistryServer) RegisterService(ctx context.Context, req *regi
 	req.Service.Status = registry.ServiceStatus_SERVICE_STATUS_HEALTHY
 	srs.services[serviceName] = req.Service
 
-	// Notify watchers
-	srs.notifyWatchers(eventType, req.Service)
+	update := &registry.ServiceUpdate{
+		EventType: eventType,
+		Service:   req.Service,
+		Timestamp: timestamppb.New(time.Now()),
+	}
+	srs.notifyUpdateListeners(update)
 
 	log.Printf("✅ Service registered: %s at %s", req.Service.Name, req.Service.Url)
 
@@ -77,7 +113,44 @@ func (srs *ServiceRegistryServer) RegisterService(ctx context.Context, req *regi
 	}, nil
 }
 
-func (srs *ServiceRegistryServer) GetServices(ctx context.Context, req *registry.GetServicesRequest) (*registry.GetServicesResponse, error) {
+func (srs *ServiceRegistryServer) DeregisterService(ctx context.Context, req *registry.DeregisterServiceRequest) (*registry.DeregisterServiceResponse, error) {
+	log.Printf("🗑️ Deregistering service: %s", req.ServiceName)
+
+	srs.mutex.Lock()
+	defer srs.mutex.Unlock()
+
+	if req.ServiceName == "" {
+		return nil, status.Error(codes.InvalidArgument, "service name is required")
+	}
+
+	// Check if service exists
+	service, exists := srs.services[req.ServiceName]
+	if !exists {
+		return &registry.DeregisterServiceResponse{
+			Success: false,
+			Message: "service not found",
+		}, nil
+	}
+
+	// Remove service
+	delete(srs.services, req.ServiceName)
+
+	update := &registry.ServiceUpdate{
+		EventType: registry.ServiceUpdateType_SERVICE_UPDATE_TYPE_REMOVED,
+		Service:   service,
+		Timestamp: timestamppb.New(time.Now()),
+	}
+	srs.notifyUpdateListeners(update)
+
+	log.Printf("✅ Service deregistered: %s", req.ServiceName)
+
+	return &registry.DeregisterServiceResponse{
+		Success: true,
+		Message: "service deregistered successfully",
+	}, nil
+}
+
+func (srs *ServiceRegistryServer) GetServices(ctx context.Context, _ *emptypb.Empty) (*registry.GetServicesResponse, error) {
 	srs.mutex.RLock()
 	defer srs.mutex.RUnlock()
 
@@ -91,58 +164,4 @@ func (srs *ServiceRegistryServer) GetServices(ctx context.Context, req *registry
 	return &registry.GetServicesResponse{
 		Services: services,
 	}, nil
-}
-
-func (srs *ServiceRegistryServer) WatchServices(req *registry.WatchServicesRequest, stream registry.ServiceRegistry_WatchServicesServer) error {
-	log.Println("👀 New service watcher connected")
-
-	watcher := make(chan *registry.ServiceUpdate, 10)
-
-	srs.mutex.Lock()
-	srs.watchers = append(srs.watchers, watcher)
-	srs.mutex.Unlock()
-
-	// Send current services
-	srs.mutex.RLock()
-	for _, service := range srs.services {
-		update := &registry.ServiceUpdate{
-			EventType: registry.ServiceUpdateType_SERVICE_UPDATE_TYPE_ADDED,
-			Service:   service,
-			Timestamp: timestamppb.New(time.Now()),
-		}
-		if err := stream.Send(update); err != nil {
-			srs.mutex.RUnlock()
-			return err
-		}
-	}
-	srs.mutex.RUnlock()
-
-	// Listen for updates
-	for {
-		select {
-		case update := <-watcher:
-			if err := stream.Send(update); err != nil {
-				return err
-			}
-		case <-stream.Context().Done():
-			log.Println("👋 Service watcher disconnected")
-			return stream.Context().Err()
-		}
-	}
-}
-
-func (srs *ServiceRegistryServer) notifyWatchers(eventType registry.ServiceUpdateType, service *registry.ServiceInfo) {
-	update := &registry.ServiceUpdate{
-		EventType: eventType,
-		Service:   service,
-		Timestamp: timestamppb.New(time.Now()),
-	}
-
-	for _, watcher := range srs.watchers {
-		select {
-		case watcher <- update:
-		default:
-			// Watcher buffer full, skip
-		}
-	}
 }

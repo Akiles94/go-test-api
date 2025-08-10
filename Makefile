@@ -2,10 +2,14 @@
 
 BINARY_NAME=go-test-api
 BUILD_DIR=bin
-MAIN_PATH=./cmd/main.go
+GATEWAY_MAIN_PATH=./gateway/cmd/main.go
+PRODUCT_MAIN_PATH=./services/product/cmd/main.go
 
-dev:
-	nodemon --exec "go run $(MAIN_PATH)" --ext go
+dev-gateway:
+	nodemon --exec "go run $(GATEWAY_MAIN_PATH)" --ext go
+
+dev-product:
+	nodemon --exec "go run $(PRODUCT_MAIN_PATH)" --ext go
 
 build:
 	go build -o $(BUILD_DIR)/$(BINARY_NAME).exe $(MAIN_PATH)

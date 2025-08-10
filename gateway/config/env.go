@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/joho/godotenv"
@@ -21,7 +22,8 @@ type EnvConfig struct {
 var Env *EnvConfig
 
 func LoadEnv() {
-	err := godotenv.Load()
+	envPath := filepath.Join("gateway", ".env")
+	err := godotenv.Load(envPath)
 	if err != nil {
 		log.Println("⚠️  No .env file found, using system env variables")
 	}
@@ -29,6 +31,7 @@ func LoadEnv() {
 	jwtRefreshExpirationDays, _ := strconv.Atoi(os.Getenv("JWT_REFRESH_EXPIRATION_DAYS"))
 
 	Env = &EnvConfig{
+		ApiPort:                  os.Getenv("API_PORT"),
 		Mode:                     os.Getenv("MODE"),
 		RateLimitCount:           rateLimitCount,
 		JWTSecret:                os.Getenv("JWT_SECRET"),

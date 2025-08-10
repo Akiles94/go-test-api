@@ -2,6 +2,7 @@
 package routes
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -15,17 +16,19 @@ import (
 )
 
 type DynamicRouter struct {
+	ctx              context.Context
 	router           *gin.Engine
 	apiGroup         *gin.RouterGroup
 	serviceRegistry  *grpc_services.ServiceRegistryServer
 	sharedProxy      *httputil.ReverseProxy
-	routeToService   map[string]*registry.ServiceInfo // ← route_key -> service info
-	registeredRoutes map[string][]string              // service_name -> [routes]
+	routeToService   map[string]*registry.ServiceInfo
+	registeredRoutes map[string][]string
 	mutex            sync.RWMutex
+	updateChan       chan *registry.ServiceUpdate
 }
 
 // NewDynamicRouter creates a new dynamic router instance
-func NewDynamicRouter(router *gin.Engine, serviceRegistry *grpc_services.ServiceRegistryServer) *DynamicRouter {
+func NewDynamicRouter(ctx context.Context, router *gin.Engine, serviceRegistry *grpc_services.ServiceRegistryServer) *DynamicRouter {
 	// Create a shared proxy with custom director
 	sharedProxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
@@ -37,12 +40,16 @@ func NewDynamicRouter(router *gin.Engine, serviceRegistry *grpc_services.Service
 			w.Write([]byte(`{"error": "service unavailable"}`))
 		},
 	}
+
 	return &DynamicRouter{
+		ctx:              ctx,
 		router:           router,
 		apiGroup:         router.Group("/api/v1"),
 		serviceRegistry:  serviceRegistry,
 		sharedProxy:      sharedProxy,
+		routeToService:   make(map[string]*registry.ServiceInfo),
 		registeredRoutes: make(map[string][]string),
+		updateChan:       make(chan *registry.ServiceUpdate, 100),
 	}
 }
 
@@ -188,8 +195,6 @@ func (dr *DynamicRouter) createSharedProxyHandler(routeKey string) gin.HandlerFu
 		dr.sharedProxy.Director = func(req *http.Request) {
 			req.URL.Scheme = serviceURL.Scheme
 			req.URL.Host = serviceURL.Host
-			// Keep the original path - NO modifications
-			// /api/v1/products stays as /products on the service
 			req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api/v1")
 			if req.URL.Path == "" {
 				req.URL.Path = "/"
