@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type ServiceRegistry struct {
+type ServiceRegistryClient struct {
 	context     context.Context
 	serviceName string
 	serviceURL  string
@@ -20,7 +20,7 @@ type ServiceRegistry struct {
 	conn        *grpc.ClientConn
 }
 
-type ServiceRegistryConfig struct {
+type ServiceRegistryClientConfig struct {
 	Context        context.Context
 	ServiceName    string
 	ServiceVersion string
@@ -30,7 +30,7 @@ type ServiceRegistryConfig struct {
 	Modules        []shared_ports.ModulePort
 }
 
-func NewServiceRegistry(config ServiceRegistryConfig) (*ServiceRegistry, error) {
+func NewServiceRegistryClient(config ServiceRegistryClientConfig) (*ServiceRegistryClient, error) {
 	conn, err := grpc.NewClient(config.GatewayAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to gateway: %w", err)
@@ -38,7 +38,7 @@ func NewServiceRegistry(config ServiceRegistryConfig) (*ServiceRegistry, error) 
 
 	client := registry.NewServiceRegistryClient(conn)
 
-	return &ServiceRegistry{
+	return &ServiceRegistryClient{
 		context:     config.Context,
 		serviceName: config.ServiceName,
 		serviceURL:  config.ServiceURL,
@@ -47,7 +47,7 @@ func NewServiceRegistry(config ServiceRegistryConfig) (*ServiceRegistry, error) 
 		conn:        conn,
 	}, nil
 }
-func (sr *ServiceRegistry) RegisterWithGateway(config ServiceRegistryConfig) error {
+func (sr *ServiceRegistryClient) RegisterWithGateway(config ServiceRegistryClientConfig) error {
 	allRoutes := make([]*registry.RouteInfo, 0)
 	for _, module := range sr.modules {
 		routes := module.GetRouteDefinitions()
@@ -78,7 +78,7 @@ func (sr *ServiceRegistry) RegisterWithGateway(config ServiceRegistryConfig) err
 	return nil
 }
 
-func (sr *ServiceRegistry) DeregisterFromGateway() error {
+func (sr *ServiceRegistryClient) DeregisterFromGateway() error {
 	req := &registry.DeregisterServiceRequest{
 		ServiceName: sr.serviceName,
 	}

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Akiles94/go-test-api/gateway/config"
 	"github.com/Akiles94/go-test-api/shared/infra/grpc/gen/registry"
 	grpc_services "github.com/Akiles94/go-test-api/shared/infra/grpc/services"
 	"github.com/gin-gonic/gin"
@@ -17,7 +18,6 @@ import (
 
 type DynamicRouter struct {
 	ctx              context.Context
-	router           *gin.Engine
 	apiGroup         *gin.RouterGroup
 	serviceRegistry  *grpc_services.ServiceRegistryServer
 	sharedProxy      *httputil.ReverseProxy
@@ -28,7 +28,7 @@ type DynamicRouter struct {
 }
 
 // NewDynamicRouter creates a new dynamic router instance
-func NewDynamicRouter(ctx context.Context, router *gin.Engine, serviceRegistry *grpc_services.ServiceRegistryServer) *DynamicRouter {
+func NewDynamicRouter(ctx context.Context, apiGroup *gin.RouterGroup, serviceRegistry *grpc_services.ServiceRegistryServer) *DynamicRouter {
 	// Create a shared proxy with custom director
 	sharedProxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
@@ -43,8 +43,7 @@ func NewDynamicRouter(ctx context.Context, router *gin.Engine, serviceRegistry *
 
 	return &DynamicRouter{
 		ctx:              ctx,
-		router:           router,
-		apiGroup:         router.Group("/api/v1"),
+		apiGroup:         apiGroup,
 		serviceRegistry:  serviceRegistry,
 		sharedProxy:      sharedProxy,
 		routeToService:   make(map[string]*registry.ServiceInfo),
@@ -106,6 +105,8 @@ func (dr *DynamicRouter) addServiceRoutes(service *registry.ServiceInfo) {
 		}
 		if route.RateLimit > 0 {
 			handler = dr.rateLimitMiddleware(route.RateLimit, handler)
+		} else {
+			handler = dr.rateLimitMiddleware(int32(config.Env.RateLimitCount), handler)
 		}
 
 		// Register route based on HTTP method

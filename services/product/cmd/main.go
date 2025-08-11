@@ -13,8 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Akiles94/go-test-api/services/product/config"
-	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters"
-	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/modules"
+	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/module"
+	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/repository"
 	"github.com/Akiles94/go-test-api/services/product/db"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
 	grpc_services "github.com/Akiles94/go-test-api/shared/infra/grpc/services"
@@ -48,45 +48,43 @@ func main() {
 	// Initialize database
 	database := db.Connect()
 
-	if err := database.AutoMigrate(&adapters.ProductEntity{}); err != nil {
+	if err := database.AutoMigrate(&repository.ProductEntity{}); err != nil {
 		log.Fatalf("❌ DB migration failed: %v", err)
 	}
 
 	// Initialize router
 	router := gin.New()
 
-	// Add middlewares
-	router.Use(middlewares.StructuredLogger())
-	router.Use(middlewares.RecoveryMiddleware())
-	router.Use(middlewares.CORSMiddleware())
-	router.Use(middlewares.RequestIDMiddleware())
-	router.Use(middlewares.SecurityHeadersMiddleware())
-
-	var contextModules []shared_ports.ModulePort
+	var modules []shared_ports.ModulePort
 
 	// Product module
-	productModule := modules.NewProductModule(database)
-	contextModules = append(contextModules, productModule)
+	productModule := module.NewProductModule(database)
+	modules = append(modules, productModule)
 
-	serviceRegistryConfig := grpc_services.ServiceRegistryConfig{
+	// Register services
+	registerService(modules)
+
+	// Start server
+	startServer(router, modules)
+}
+
+func registerService(modules []shared_ports.ModulePort) {
+	serviceRegistryClientConfig := grpc_services.ServiceRegistryClientConfig{
 		GatewayAddress: config.Env.GatewayGRPCAddress,
 		Context:        context.Background(),
 		ServiceName:    "product-service",
 		ServiceVersion: "v1.0.0",
 		ServiceURL:     fmt.Sprintf("http://%s:%s", config.Env.ServiceHost, config.Env.ApiPort),
 		HealthEndpoint: "/health",
-		Modules:        contextModules,
+		Modules:        modules,
 	}
 
-	serviceRegistry, err := grpc_services.NewServiceRegistry(serviceRegistryConfig)
+	serviceRegistry, err := grpc_services.NewServiceRegistryClient(serviceRegistryClientConfig)
 	if err != nil {
 		log.Printf("⚠️ Failed to create service registry: %v", err)
 		return
 	}
-
-	registerModuleRoutes(router, contextModules)
-
-	if err := serviceRegistry.RegisterWithGateway(serviceRegistryConfig); err != nil {
+	if err := serviceRegistry.RegisterWithGateway(serviceRegistryClientConfig); err != nil {
 		log.Printf("⚠️ Failed to register with gateway: %v", err)
 		log.Printf("Continuing without gateway registration...")
 	}
@@ -97,21 +95,32 @@ func main() {
 			log.Printf("⚠️ Failed to deregister from gateway: %v", err)
 		}
 	}()
-
-	// Start server
-	startServer(router)
 }
 
-func registerModuleRoutes(router *gin.Engine, contextModules []shared_ports.ModulePort) {
-	for _, module := range contextModules {
-		switch mod := module.(type) {
-		case *modules.ProductModule:
-			mod.RegisterRoutes(router.Group("/products"))
+func startServer(router *gin.Engine, modules []shared_ports.ModulePort) {
+	// Product Health check
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"service": "product-service",
+			"version": "1.0.0",
+		})
+	})
+
+	// Add middlewares
+	router.Use(middlewares.StructuredLogger())
+	router.Use(middlewares.RecoveryMiddleware())
+	router.Use(middlewares.CORSMiddleware())
+	router.Use(middlewares.RequestIDMiddleware())
+	router.Use(middlewares.SecurityHeadersMiddleware())
+
+	for _, item := range modules {
+		switch mod := item.(type) {
+		case *module.ProductModule:
+			mod.RegisterRoutes(router.Group(mod.GetPathPrefix()))
 		}
 	}
-}
 
-func startServer(router *gin.Engine) {
 	server := &http.Server{
 		Addr:         ":" + config.Env.ApiPort,
 		Handler:      router,

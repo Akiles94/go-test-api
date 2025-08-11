@@ -51,7 +51,8 @@ func main() {
 	setupGatewayRoutes(router, serviceRegistryServer)
 
 	// 6. Configure dynamic routes
-	dynamicRouter := routes.NewDynamicRouter(ctx, router, serviceRegistryServer)
+	apiGroup := router.Group("/api/v1")
+	dynamicRouter := routes.NewDynamicRouter(ctx, apiGroup, serviceRegistryServer)
 	go dynamicRouter.WatchServices() // Watch for service changes
 
 	// ✅ 7. Configure HTTP server properly
@@ -129,7 +130,7 @@ func setupGatewayRoutes(router *gin.Engine, serviceRegistry *grpc_services.Servi
 		})
 	})
 
-	// Health check del Gateway
+	// Gateway Health check
 	admin.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "healthy",

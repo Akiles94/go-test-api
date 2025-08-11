@@ -1,4 +1,4 @@
-package adapters_tests
+package repository_tests
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/domain/models"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/domain/models/models_mothers"
-	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters"
+	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/repository"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/suite"
@@ -22,7 +22,7 @@ type ProductRepositoryTestSuite struct {
 	suite.Suite
 	container *postgres.PostgresContainer
 	db        *gorm.DB
-	repo      *adapters.ProductRepository
+	repo      *repository.ProductRepository
 	ctx       context.Context
 }
 
@@ -51,11 +51,11 @@ func (suite *ProductRepositoryTestSuite) SetupSuite() {
 	suite.Require().NoError(err)
 
 	// Auto-migrate schema
-	err = db.AutoMigrate(&adapters.ProductEntity{})
+	err = db.AutoMigrate(&repository.ProductEntity{})
 	suite.Require().NoError(err)
 
 	// Create repository singleton
-	suite.repo = adapters.NewProductRepository(db)
+	suite.repo = repository.NewProductRepository(db)
 	suite.db = db
 }
 

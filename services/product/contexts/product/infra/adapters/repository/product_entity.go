@@ -1,4 +1,4 @@
-package adapters
+package repository
 
 import (
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/domain/models"
