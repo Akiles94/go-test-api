@@ -61,14 +61,6 @@ func main() {
 	productModule := module.NewProductModule(database)
 	modules = append(modules, productModule)
 
-	// Register services
-	registerService(modules)
-
-	// Start server
-	startServer(router, modules)
-}
-
-func registerService(modules []shared_ports.ModulePort) {
 	serviceRegistryClientConfig := grpc_services.ServiceRegistryClientConfig{
 		GatewayAddress: config.Env.GatewayGRPCAddress,
 		Context:        context.Background(),
@@ -84,17 +76,20 @@ func registerService(modules []shared_ports.ModulePort) {
 		log.Printf("⚠️ Failed to create service registry: %v", err)
 		return
 	}
-	if err := serviceRegistry.RegisterWithGateway(serviceRegistryClientConfig); err != nil {
+
+	if err := serviceRegistry.RegisterWithGateway(); err != nil {
 		log.Printf("⚠️ Failed to register with gateway: %v", err)
 		log.Printf("Continuing without gateway registration...")
 	}
 
-	// Graceful shutdown setup
 	defer func() {
 		if err := serviceRegistry.DeregisterFromGateway(); err != nil {
 			log.Printf("⚠️ Failed to deregister from gateway: %v", err)
 		}
 	}()
+
+	// Start server
+	startServer(router, modules)
 }
 
 func startServer(router *gin.Engine, modules []shared_ports.ModulePort) {

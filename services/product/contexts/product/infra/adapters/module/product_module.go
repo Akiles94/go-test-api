@@ -108,6 +108,7 @@ func (pm *ProductModule) GetRouteDefinitions() []*registry.RouteInfo {
 			Method:    route.Method,
 			Path:      pm.pathPrefix + route.Path,
 			Protected: route.Protected,
+			RateLimit: route.RateLimit,
 		}
 	}
 

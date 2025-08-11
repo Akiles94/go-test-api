@@ -12,12 +12,14 @@ import (
 )
 
 type ServiceRegistryClient struct {
-	context     context.Context
-	serviceName string
-	serviceURL  string
-	modules     []shared_ports.ModulePort
-	client      registry.ServiceRegistryClient
-	conn        *grpc.ClientConn
+	context        context.Context
+	serviceName    string
+	serviceURL     string
+	serviceVersion string
+	healthEndpoint string
+	modules        []shared_ports.ModulePort
+	client         registry.ServiceRegistryClient
+	conn           *grpc.ClientConn
 }
 
 type ServiceRegistryClientConfig struct {
@@ -39,25 +41,27 @@ func NewServiceRegistryClient(config ServiceRegistryClientConfig) (*ServiceRegis
 	client := registry.NewServiceRegistryClient(conn)
 
 	return &ServiceRegistryClient{
-		context:     config.Context,
-		serviceName: config.ServiceName,
-		serviceURL:  config.ServiceURL,
-		modules:     config.Modules,
-		client:      client,
-		conn:        conn,
+		context:        config.Context,
+		serviceName:    config.ServiceName,
+		serviceVersion: config.ServiceVersion,
+		serviceURL:     config.ServiceURL,
+		modules:        config.Modules,
+		healthEndpoint: config.HealthEndpoint,
+		client:         client,
+		conn:           conn,
 	}, nil
 }
-func (sr *ServiceRegistryClient) RegisterWithGateway(config ServiceRegistryClientConfig) error {
+func (sr *ServiceRegistryClient) RegisterWithGateway() error {
 	allRoutes := make([]*registry.RouteInfo, 0)
 	for _, module := range sr.modules {
 		routes := module.GetRouteDefinitions()
 		allRoutes = append(allRoutes, routes...)
 	}
 	serviceInfo := &registry.ServiceInfo{
-		Name:           config.ServiceName,
-		Version:        config.ServiceVersion,
-		Url:            config.ServiceURL,
-		HealthEndpoint: config.HealthEndpoint,
+		Name:           sr.serviceName,
+		Version:        sr.serviceVersion,
+		Url:            sr.serviceURL,
+		HealthEndpoint: sr.healthEndpoint,
 		Routes:         allRoutes,
 	}
 	req := &registry.RegisterServiceRequest{
@@ -73,7 +77,7 @@ func (sr *ServiceRegistryClient) RegisterWithGateway(config ServiceRegistryClien
 	}
 
 	log.Printf("✅ Successfully registered %s with %d routes",
-		config.ServiceName, len(allRoutes))
+		sr.serviceName, len(allRoutes))
 
 	return nil
 }
