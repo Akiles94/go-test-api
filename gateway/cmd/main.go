@@ -12,14 +12,30 @@ import (
 	"time"
 
 	"github.com/Akiles94/go-test-api/gateway/config"
+	_ "github.com/Akiles94/go-test-api/gateway/docs"
 	"github.com/Akiles94/go-test-api/gateway/routes"
 	"github.com/Akiles94/go-test-api/shared/infra/grpc/gen/registry"
 	grpc_services "github.com/Akiles94/go-test-api/shared/infra/grpc/services"
 	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"google.golang.org/grpc"
 )
 
+// @title Go Test API - Gateway
+// @version 1.0
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @BasePath /api/v1
+// @schemes http https
 func main() {
 	log.Println("🚀 Starting Gateway...")
 
@@ -36,6 +52,12 @@ func main() {
 	// 3. Create HTTP router with Gin
 	// 3. Create HTTP router with Gin
 	router := gin.New()
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	router.GET("/swagger", func(c *gin.Context) {
+		c.Redirect(302, "/swagger/index.html")
+	})
 
 	// 4. Add middlewares
 	router.Use(middlewares.StructuredLogger())

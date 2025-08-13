@@ -5,11 +5,27 @@ BUILD_DIR=bin
 GATEWAY_MAIN_PATH=./gateway/cmd/main.go
 PRODUCT_MAIN_PATH=./services/product/cmd/main.go
 
+docs-consolidated:
+	@echo "🔄 Generating consolidated docs for Gateway..."
+	swag init \
+		--parseDependency \
+		--parseInternal \
+		--parseDepth 2 \
+		--dir ./gateway,./services \
+		--exclude ./shared,./bin,./tmp \
+		-o ./gateway/docs \
+		-g ./cmd/main.go
+	@echo "✅ Consolidated docs generated in ./gateway/docs"
+
 dev-gateway:
 	nodemon --exec "go run $(GATEWAY_MAIN_PATH)" --ext go
 
 dev-product:
 	nodemon --exec "go run $(PRODUCT_MAIN_PATH)" --ext go
+
+gateway-proto-gen:
+	@echo "🔄 Generating protocol buffers..."
+	@cd shared/infra/grpc && powershell -ExecutionPolicy Bypass -File scripts/generate_proto.ps1
 
 build:
 	go build -o $(BUILD_DIR)/$(BINARY_NAME).exe $(MAIN_PATH)

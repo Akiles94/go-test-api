@@ -1,49 +1,40 @@
 # Build stage
 FROM golang:1.24-alpine AS builder
 
-# Install git and ca-certificates (needed for downloading dependencies)
 RUN apk add --no-cache git ca-certificates tzdata
-
-# Install swag for generating docs
-RUN go install github.com/swaggo/swag/cmd/swag@v1.8.6
 
 # Create appuser
 RUN adduser -D -g '' appuser
 
-# Set working directory
+# Build argument for service path
+ARG SERVICE_PATH
+
 WORKDIR /build
 
-# Copy go mod files
+# Copy go mod and sum files
 COPY go.mod go.sum ./
-
-# Download dependencies
 RUN go mod download
+# Generate API documentation
 
-# Copy source code
+# Copy entire project (needed for shared modules)
 COPY . .
 
-# Generate API documentation
-RUN swag init -g cmd/main.go -o ./docs
-
-# Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o main cmd/main.go
+# Build the specific service binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
+    -ldflags '-extldflags "-static"' \
+    -o main ${SERVICE_PATH}/cmd/main.go
 
 # Final stage
-FROM scratch
+FROM alpine:latest
 
-# Import from builder
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
-COPY --from=builder /etc/passwd /etc/passwd
+RUN apk --no-cache add ca-certificates wget
+WORKDIR /root/
 
 # Copy the binary
-COPY --from=builder /build/main /app/main
+COPY --from=builder /build/main .
 
-# Use an unprivileged user
-USER appuser
-
-# Expose port
+# Default port (can be overridden)
 EXPOSE 8080
 
 # Run the binary
-ENTRYPOINT ["/app/main"]
+CMD ["./main"]

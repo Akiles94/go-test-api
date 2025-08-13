@@ -86,6 +86,20 @@ func (dr *DynamicRouter) addServiceRoutes(service *registry.ServiceInfo) {
 	// Use existing API group
 	var addedRoutes []string
 
+	// Health endpoint
+	if service.HealthEndpoint != "" {
+		healthRouteKey := "GET " + "/health/" + service.Name
+		if !dr.routeExists(healthRouteKey) {
+			dr.routeToService[healthRouteKey] = service
+			handler := dr.createHealthProxyHandler(service)
+
+			dr.apiGroup.GET("/health/"+service.Name, handler)
+			addedRoutes = append(addedRoutes, healthRouteKey)
+			log.Printf("   Added health route: GET /api/v1/health/%s -> %s%s",
+				service.Name, service.Url, service.HealthEndpoint)
+		}
+	}
+
 	// Register specific routes if defined
 	for _, route := range service.Routes {
 
@@ -162,56 +176,6 @@ func (dr *DynamicRouter) updateServiceRoutes(service *registry.ServiceInfo) {
 	// Remove old routes and add new ones
 	dr.removeServiceRoutes(service.Name)
 	dr.addServiceRoutes(service)
-}
-
-func (dr *DynamicRouter) createSharedProxyHandler(routeKey string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get service info for this specific route
-		dr.mutex.RLock()
-		service, exists := dr.routeToService[routeKey]
-		dr.mutex.RUnlock()
-
-		if !exists {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "route no longer available",
-				"route": routeKey,
-			})
-			return
-		}
-
-		// Parse service URL
-		serviceURL, err := url.Parse(service.Url)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "invalid service configuration",
-			})
-			return
-		}
-
-		// Add service information headers
-		c.Header("X-Service-Name", service.Name)
-		c.Header("X-Service-Version", service.Version)
-
-		// Create a custom director for this request
-		dr.sharedProxy.Director = func(req *http.Request) {
-			req.URL.Scheme = serviceURL.Scheme
-			req.URL.Host = serviceURL.Host
-			req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api/v1")
-			if req.URL.Path == "" {
-				req.URL.Path = "/"
-			}
-
-			// Preserve query parameters
-			if serviceURL.RawQuery == "" || req.URL.RawQuery == "" {
-				req.URL.RawQuery = serviceURL.RawQuery + req.URL.RawQuery
-			} else {
-				req.URL.RawQuery = serviceURL.RawQuery + "&" + req.URL.RawQuery
-			}
-		}
-
-		// Proxy the request to the service
-		dr.sharedProxy.ServeHTTP(c.Writer, c.Request)
-	}
 }
 
 // authMiddleware provides simple authentication middleware

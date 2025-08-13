@@ -21,21 +21,6 @@ import (
 	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
 )
 
-// @title Go Test API
-// @version 1.0
-// @description A test API for products management
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8080
-// @BasePath /api/v1
-// @schemes http https
 func main() {
 	// Load configuration
 	config.LoadEnv()
@@ -65,7 +50,7 @@ func main() {
 		GatewayAddress: config.Env.GatewayGRPCAddress,
 		Context:        context.Background(),
 		ServiceName:    "product-service",
-		ServiceVersion: "v1.0.0",
+		ServiceVersion: "0.0.1",
 		ServiceURL:     fmt.Sprintf("http://%s:%s", config.Env.ServiceHost, config.Env.ApiPort),
 		HealthEndpoint: "/health",
 		Modules:        modules,
@@ -105,7 +90,6 @@ func startServer(router *gin.Engine, modules []shared_ports.ModulePort) {
 	// Add middlewares
 	router.Use(middlewares.StructuredLogger())
 	router.Use(middlewares.RecoveryMiddleware())
-	router.Use(middlewares.CORSMiddleware())
 	router.Use(middlewares.RequestIDMiddleware())
 	router.Use(middlewares.SecurityHeadersMiddleware())
 
