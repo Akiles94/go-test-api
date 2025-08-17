@@ -1,4 +1,4 @@
-.PHONY: dev build run test clean install air help
+.PHONY: dev-gateway dev-product build run test test-services test-shared test-coverage test-coverage-services test-coverage-shared clean install air help docs-consolidated gateway-proto-gen fmt lint
 
 BINARY_NAME=go-test-api
 BUILD_DIR=bin
@@ -37,10 +37,22 @@ run-bin:
 	./$(BUILD_DIR)/$(BINARY_NAME).exe
 
 test:
-	go test ./contexts/...
+	go test ./services/... ./shared/...
+
+test-services:
+	go test ./services/...
+
+test-shared:
+	go test ./shared/...
 
 test-coverage:
-	go test -cover ./contexts/...
+	go test -cover ./services/... ./shared/...
+
+test-coverage-services:
+	go test -cover ./services/...
+
+test-coverage-shared:
+	go test -cover ./shared/...
 
 clean:
 	rm -rf $(BUILD_DIR)/
@@ -58,12 +70,17 @@ lint:
 
 help:
 	@echo "Available commands:"
-	@echo "  dev          - Run with hot reload (nodemon)"
+	@echo "  dev-gateway  - Run gateway with hot reload"
+	@echo "  dev-product  - Run product service with hot reload"
 	@echo "  build        - Build application"
 	@echo "  run          - Run without building"
 	@echo "  run-bin      - Run compiled binary"
-	@echo "  test         - Run tests"
-	@echo "  test-coverage - Run tests with coverage"
+	@echo "  test         - Run all tests (services + shared)"
+	@echo "  test-services - Run only services tests"
+	@echo "  test-shared  - Run only shared tests"
+	@echo "  test-coverage - Run all tests with coverage"
+	@echo "  test-coverage-services - Run services tests with coverage"
+	@echo "  test-coverage-shared - Run shared tests with coverage"
 	@echo "  clean        - Clean up compiled files"
 	@echo "  install      - Install dependencies"
 	@echo "  fmt          - Format code"
