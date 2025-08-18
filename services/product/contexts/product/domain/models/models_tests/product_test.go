@@ -25,7 +25,7 @@ func TestNewProduct(t *testing.T) {
 		assert.Equal(t, mother.Id, product.ID())
 		assert.Equal(t, mother.Sku, product.Sku())
 		assert.Equal(t, mother.Name, product.Name())
-		assert.Equal(t, mother.Category, product.Category())
+		assert.Equal(t, mother.CategoryID, product.CategoryID())
 		assert.True(t, mother.Price.Equal(product.Price()))
 	})
 
@@ -61,7 +61,7 @@ func TestNewProduct(t *testing.T) {
 
 	t.Run("should return error when category is empty", func(t *testing.T) {
 		// Arrange & Act
-		product, err := models_mothers.NewProductMother().WithCategory("").Build()
+		product, err := models_mothers.NewProductMother().WithCategoryID(uuid.Nil).Build()
 
 		// Assert
 		assert.Error(t, err)
@@ -86,14 +86,14 @@ func TestProduct_Getters(t *testing.T) {
 		id := uuid.New()
 		sku := "CUSTOM-001"
 		name := "Custom Product"
-		category := "Custom Category"
+		categoryID := uuid.New()
 		price := decimal.NewFromFloat(123.45)
 
 		product := models_mothers.NewProductMother().
 			WithID(id).
 			WithSku(sku).
 			WithName(name).
-			WithCategory(category).
+			WithCategoryID(categoryID).
 			WithPrice(price).
 			MustBuild()
 
@@ -101,7 +101,7 @@ func TestProduct_Getters(t *testing.T) {
 		assert.Equal(t, id, product.ID())
 		assert.Equal(t, sku, product.Sku())
 		assert.Equal(t, name, product.Name())
-		assert.Equal(t, category, product.Category())
+		assert.Equal(t, categoryID, product.CategoryID())
 		assert.True(t, price.Equal(product.Price()))
 	})
 }

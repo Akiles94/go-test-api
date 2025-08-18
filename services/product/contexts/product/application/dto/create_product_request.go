@@ -7,10 +7,10 @@ import (
 )
 
 type CreateProductRequest struct {
-	Sku      string  `json:"sku" binding:"required"`
-	Name     string  `json:"name" binding:"required"`
-	Category string  `json:"category" binding:"required"`
-	Price    float64 `json:"price" binding:"required,min=0"`
+	Sku        string    `json:"sku" binding:"required"`
+	Name       string    `json:"name" binding:"required"`
+	CategoryID uuid.UUID `json:"category_id" binding:"required"`
+	Price      float64   `json:"price" binding:"required,min=0"`
 }
 
 func (c *CreateProductRequest) ToDomainModel() (models.Product, error) {
@@ -18,7 +18,8 @@ func (c *CreateProductRequest) ToDomainModel() (models.Product, error) {
 		uuid.New(),
 		c.Sku,
 		c.Name,
-		c.Category,
+		c.CategoryID,
 		decimal.NewFromFloat(c.Price),
+		nil,
 	)
 }

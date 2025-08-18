@@ -6,20 +6,19 @@ import (
 
 	"github.com/Akiles94/go-test-api/services/product/contexts/category/application/use_cases"
 	"github.com/Akiles94/go-test-api/services/product/contexts/category/application/use_cases/use_cases_mocks"
+	"github.com/Akiles94/go-test-api/services/product/contexts/category/domain/models/models_mothers"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestDeleteCategoryUseCase_ValidId_ShouldDeleteCategory(t *testing.T) {
 	// Arrange
-	mockRepo := &use_cases_mocks.MockCategoryRepository{}
-	useCase := use_cases.NewDeleteCategoryUseCase(mockRepo)
-
+	mockRepo := use_cases_mocks.NewMockCategoryRepository()
 	categoryID := uuid.New()
-
-	mockRepo.On("GetByID", mock.Anything, categoryID).Return(mock.Anything, nil)
-	mockRepo.On("Delete", mock.Anything, categoryID).Return(nil)
+	category := models_mothers.NewCategoryMother().MustBuild()
+	mockRepo.SetupGetByIDSuccess(category)
+	mockRepo.SetupDeleteSuccess()
+	useCase := use_cases.NewDeleteCategoryUseCase(mockRepo)
 
 	// Act
 	err := useCase.Execute(context.Background(), categoryID)
@@ -31,13 +30,14 @@ func TestDeleteCategoryUseCase_ValidId_ShouldDeleteCategory(t *testing.T) {
 
 func TestDeleteCategoryUseCase_InvalidId_ShouldReturnError(t *testing.T) {
 	// Arrange
-	mockRepo := &use_cases_mocks.MockCategoryRepository{}
+	mockRepo := use_cases_mocks.NewMockCategoryRepository()
+	categoryID := uuid.New()
+	category := models_mothers.NewCategoryMother().MustBuild()
+	mockRepo.SetupGetByIDSuccess(category)
+	mockRepo.SetupDeleteError()
 	useCase := use_cases.NewDeleteCategoryUseCase(mockRepo)
 
-	categoryID := uuid.New()
 	expectedError := assert.AnError
-
-	mockRepo.On("GetByID", mock.Anything, categoryID).Return(nil, expectedError)
 
 	// Act
 	err := useCase.Execute(context.Background(), categoryID)

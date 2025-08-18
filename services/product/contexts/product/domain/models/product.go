@@ -38,19 +38,21 @@ type Product interface {
 	ID() uuid.UUID
 	Sku() string
 	Name() string
-	Category() string
+	CategoryID() uuid.UUID
+	Category() *Category
 	Price() decimal.Decimal
 }
 
 type product struct {
-	id       uuid.UUID
-	sku      string
-	name     string
-	category string
-	price    decimal.Decimal
+	id         uuid.UUID
+	sku        string
+	name       string
+	categoryID uuid.UUID
+	category   *Category
+	price      decimal.Decimal
 }
 
-func NewProduct(id uuid.UUID, sku, name, category string, price decimal.Decimal) (Product, error) {
+func NewProduct(id uuid.UUID, sku, name string, categoryID uuid.UUID, price decimal.Decimal, category *Category) (Product, error) {
 	if price.IsNegative() {
 		return nil, ErrProductPriceNegative
 	}
@@ -60,7 +62,7 @@ func NewProduct(id uuid.UUID, sku, name, category string, price decimal.Decimal)
 	if name == "" {
 		return nil, ErrProductNameEmpty
 	}
-	if category == "" {
+	if categoryID == uuid.Nil {
 		return nil, ErrProductCategoryEmpty
 	}
 	if id == uuid.Nil {
@@ -68,11 +70,12 @@ func NewProduct(id uuid.UUID, sku, name, category string, price decimal.Decimal)
 	}
 
 	return &product{
-		id:       id,
-		sku:      sku,
-		name:     name,
-		category: category,
-		price:    price,
+		id:         id,
+		sku:        sku,
+		name:       name,
+		categoryID: categoryID,
+		price:      price,
+		category:   category,
 	}, nil
 }
 
@@ -88,7 +91,11 @@ func (p *product) Name() string {
 	return p.name
 }
 
-func (p *product) Category() string {
+func (p *product) CategoryID() uuid.UUID {
+	return p.categoryID
+}
+
+func (p *product) Category() *Category {
 	return p.category
 }
 

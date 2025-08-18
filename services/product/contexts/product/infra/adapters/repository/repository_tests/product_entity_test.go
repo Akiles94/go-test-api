@@ -3,7 +3,7 @@ package repository_tests
 import (
 	"testing"
 
-	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/repository"
+	"github.com/Akiles94/go-test-api/services/product/shared/infra/adapters/repository"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -12,9 +12,10 @@ import (
 func ProductEntityToDomainModelTest(t *testing.T) {
 	//Arrange
 	productEntity := &repository.ProductEntity{
-		ID:    uuid.New(),
-		Name:  "Test Product",
-		Price: decimal.NewFromFloat(100),
+		ID:         uuid.New(),
+		Name:       "Test Product",
+		Price:      decimal.NewFromFloat(100),
+		CategoryID: uuid.New(),
 	}
 
 	//Act

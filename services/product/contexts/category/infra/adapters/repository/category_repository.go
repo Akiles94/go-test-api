@@ -6,6 +6,7 @@ import (
 
 	"github.com/Akiles94/go-test-api/services/product/contexts/category/application/ports/outbound"
 	"github.com/Akiles94/go-test-api/services/product/contexts/category/domain/models"
+	"github.com/Akiles94/go-test-api/services/product/shared/infra/adapters/repository"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -22,7 +23,7 @@ func NewCategoryRepository(db *gorm.DB) outbound.CategoryRepositoryPort {
 }
 
 func (cr *CategoryRepository) Create(ctx context.Context, category models.Category) error {
-	entity := CategoryEntityFromDomain(category)
+	entity := repository.NewCategoryEntityFromDomain(category)
 	if err := cr.db.WithContext(ctx).Create(entity).Error; err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func (cr *CategoryRepository) Create(ctx context.Context, category models.Catego
 }
 
 func (cr *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Category, error) {
-	var entity CategoryEntity
+	var entity repository.CategoryEntity
 	if err := cr.db.WithContext(ctx).Where("id = ?", id).First(&entity).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -41,7 +42,7 @@ func (cr *CategoryRepository) GetByID(ctx context.Context, id uuid.UUID) (models
 }
 
 func (cr *CategoryRepository) GetAll(ctx context.Context, cursor *string, limit int) ([]models.Category, *string, error) {
-	var entities []CategoryEntity
+	var entities []repository.CategoryEntity
 	handledLimit := limit
 	if handledLimit <= 0 {
 		handledLimit = defaultLimit
@@ -81,7 +82,7 @@ func (cr *CategoryRepository) GetAll(ctx context.Context, cursor *string, limit 
 }
 
 func (cr *CategoryRepository) Update(ctx context.Context, category models.Category) error {
-	entity := CategoryEntityFromDomain(category)
+	entity := repository.NewCategoryEntityFromDomain(category)
 	result := cr.db.WithContext(ctx).Where("id = ?", entity.ID).Updates(entity)
 	if result.Error != nil {
 		return result.Error
@@ -93,7 +94,7 @@ func (cr *CategoryRepository) Update(ctx context.Context, category models.Catego
 }
 
 func (cr *CategoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	result := cr.db.WithContext(ctx).Where("id = ?", id).Delete(&CategoryEntity{})
+	result := cr.db.WithContext(ctx).Where("id = ?", id).Delete(&repository.CategoryEntity{})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -105,7 +106,7 @@ func (cr *CategoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (cr *CategoryRepository) ExistsByName(ctx context.Context, name string, excludeID *uuid.UUID) (bool, error) {
 	var count int64
-	query := cr.db.WithContext(ctx).Model(&CategoryEntity{}).Where("name = ?", name)
+	query := cr.db.WithContext(ctx).Model(&repository.CategoryEntity{}).Where("name = ?", name)
 
 	if excludeID != nil {
 		query = query.Where("id != ?", *excludeID)

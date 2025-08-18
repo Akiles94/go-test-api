@@ -156,15 +156,8 @@ func (ph *ProductHandler) Create(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	productResponse := dto.ProductResponse{
-		ID:       product.ID(),
-		Sku:      product.Sku(),
-		Name:     product.Name(),
-		Category: product.Category(),
-		Price:    product.Price(),
-	}
 
-	c.JSON(http.StatusCreated, productResponse)
+	c.JSON(http.StatusCreated, dto.NewProductResponseFromDomainModel(product))
 }
 
 // Update godoc

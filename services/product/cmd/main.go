@@ -14,8 +14,8 @@ import (
 
 	"github.com/Akiles94/go-test-api/services/product/config"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/module"
-	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/repository"
 	"github.com/Akiles94/go-test-api/services/product/db"
+	"github.com/Akiles94/go-test-api/services/product/shared/infra/adapters/repository"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
 	grpc_services "github.com/Akiles94/go-test-api/shared/infra/grpc/services"
 	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
@@ -33,7 +33,10 @@ func main() {
 	// Initialize database
 	database := db.Connect()
 
-	if err := database.AutoMigrate(&repository.ProductEntity{}); err != nil {
+	if err := database.AutoMigrate(
+		&repository.ProductEntity{},
+		&repository.CategoryEntity{},
+	); err != nil {
 		log.Fatalf("❌ DB migration failed: %v", err)
 	}
 

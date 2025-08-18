@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/Akiles94/go-test-api/services/product/contexts/category/domain/models/models_mothers"
-	"github.com/Akiles94/go-test-api/services/product/contexts/category/infra/adapters/repository"
+	"github.com/Akiles94/go-test-api/services/product/shared/infra/adapters/repository"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,7 +54,7 @@ func TestCategoryEntityFromDomain_ValidCategory_ShouldReturnEntity(t *testing.T)
 	category := mother.ValidCategory()
 
 	// Act
-	entity := repository.CategoryEntityFromDomain(category)
+	entity := repository.NewCategoryEntityFromDomain(category)
 
 	// Assert
 	assert.NotNil(t, entity)

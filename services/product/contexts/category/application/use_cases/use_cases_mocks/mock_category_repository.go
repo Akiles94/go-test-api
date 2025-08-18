@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/Akiles94/go-test-api/services/product/contexts/category/domain/models"
+	"github.com/Akiles94/go-test-api/shared/infra/shared_handlers"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -46,4 +48,80 @@ func (m *MockCategoryRepository) Delete(ctx context.Context, id uuid.UUID) error
 func (m *MockCategoryRepository) ExistsByName(ctx context.Context, name string, excludeID *uuid.UUID) (bool, error) {
 	args := m.Called(ctx, name, excludeID)
 	return args.Bool(0), args.Error(1)
+}
+
+func NewMockCategoryRepository() *MockCategoryRepository {
+	return &MockCategoryRepository{}
+}
+
+// Create utils
+func (m *MockCategoryRepository) SetupCreateSuccess(category models.Category) *mock.Call {
+	return m.On("Create", mock.Anything, category).Return(nil)
+}
+
+func (m *MockCategoryRepository) SetupCreateError(category models.Category, err error) *mock.Call {
+	return m.On("Create", mock.Anything, category).Return(err)
+}
+
+// GetByID utils
+func (m *MockCategoryRepository) SetupGetByIDSuccess(category models.Category) *mock.Call {
+	return m.On("GetByID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(category, nil)
+}
+
+func (m *MockCategoryRepository) SetupGetByIDNotFound(id uuid.UUID) *mock.Call {
+	return m.On("GetByID", mock.Anything, id).Return(nil, shared_handlers.ErrorCodeNotFound)
+}
+
+func (m *MockCategoryRepository) SetupGetByIDError() *mock.Call {
+	return m.On("GetByID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(nil, assert.AnError)
+}
+
+// GetAll utils
+func (m *MockCategoryRepository) SetupGetAllSuccess(categories []models.Category, nextCursor *string) *mock.Call {
+	return m.On("GetAll", mock.Anything, mock.AnythingOfType("*string"), mock.AnythingOfType("int")).Return(categories, nextCursor, nil)
+}
+
+func (m *MockCategoryRepository) SetupGetAllError(err error) *mock.Call {
+	return m.On("GetAll", mock.Anything, mock.AnythingOfType("*string"), mock.AnythingOfType("int")).Return(nil, nil, err)
+}
+
+// Update utils
+func (m *MockCategoryRepository) SetupUpdateSuccess(category models.Category) *mock.Call {
+	return m.On("Update", mock.Anything, category).Return(nil)
+}
+
+func (m *MockCategoryRepository) SetupUpdateError(category models.Category, err error) *mock.Call {
+	return m.On("Update", mock.Anything, category).Return(err)
+}
+
+// Delete utils
+func (m *MockCategoryRepository) SetupDeleteSuccess() *mock.Call {
+	return m.On("Delete", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(nil)
+}
+
+func (m *MockCategoryRepository) SetupDeleteError() *mock.Call {
+	return m.On("Delete", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(assert.AnError)
+}
+
+// ExistsByName utils
+func (m *MockCategoryRepository) SetupExistsByNameTrue(name string, excludeID *uuid.UUID) *mock.Call {
+	return m.On("ExistsByName", mock.Anything, name, excludeID).Return(true, nil)
+}
+
+func (m *MockCategoryRepository) SetupExistsByNameFalse(name string, excludeID *uuid.UUID) *mock.Call {
+	return m.On("ExistsByName", mock.Anything, name, excludeID).Return(false, nil)
+}
+
+func (m *MockCategoryRepository) SetupExistsByNameError(name string, excludeID *uuid.UUID, err error) *mock.Call {
+	return m.On("ExistsByName", mock.Anything, name, excludeID).Return(false, err)
+}
+
+// Método específico para manejar strings vacíos
+func (m *MockCategoryRepository) SetupExistsByNameForEmptyString() *mock.Call {
+	return m.On("ExistsByName", mock.Anything, "", (*uuid.UUID)(nil)).Return(false, nil)
+}
+
+// Método genérico para cualquier string
+func (m *MockCategoryRepository) SetupExistsByNameAny(exists bool, err error) *mock.Call {
+	return m.On("ExistsByName", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(exists, err)
 }

@@ -15,11 +15,13 @@ func TestProductResponse_NewProductResponseFromDomainModel(t *testing.T) {
 
 		// Act
 		productResponse := dto.NewProductResponseFromDomainModel(domainModel)
-
+		domainModelCategory := *domainModel.Category()
 		// Assert
 		assert.Equal(t, productResponse.Sku, domainModel.Sku())
 		assert.Equal(t, productResponse.Name, domainModel.Name())
-		assert.Equal(t, productResponse.Category, domainModel.Category())
+		assert.Equal(t, productResponse.Category.Name, domainModelCategory.Name())
+		assert.Equal(t, productResponse.Category.Description, domainModelCategory.Description())
+		assert.Equal(t, productResponse.Category.Slug, domainModelCategory.Slug())
 		assert.Equal(t, productResponse.Price, domainModel.Price())
 	})
 }

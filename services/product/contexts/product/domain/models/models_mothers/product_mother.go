@@ -7,20 +7,23 @@ import (
 )
 
 type ProductMother struct {
-	Id       uuid.UUID
-	Sku      string
-	Name     string
-	Category string
-	Price    decimal.Decimal
+	Id         uuid.UUID
+	Sku        string
+	Name       string
+	CategoryID uuid.UUID
+	Category   *models.Category
+	Price      decimal.Decimal
 }
 
 func NewProductMother() *ProductMother {
+	category := models.NewCategory(uuid.New(), "Default Category", "default-category", "default-category")
 	return &ProductMother{
-		Id:       uuid.New(),
-		Sku:      "DEFAULT-001",
-		Name:     "Default Product",
-		Category: "Electronics",
-		Price:    decimal.NewFromFloat(99.99),
+		Id:         uuid.New(),
+		Sku:        "DEFAULT-001",
+		Name:       "Default Product",
+		CategoryID: category.ID(),
+		Category:   &category,
+		Price:      decimal.NewFromFloat(99.99),
 	}
 }
 
@@ -39,8 +42,8 @@ func (pm *ProductMother) WithName(name string) *ProductMother {
 	return pm
 }
 
-func (pm *ProductMother) WithCategory(category string) *ProductMother {
-	pm.Category = category
+func (pm *ProductMother) WithCategoryID(categoryID uuid.UUID) *ProductMother {
+	pm.CategoryID = categoryID
 	return pm
 }
 
@@ -55,7 +58,7 @@ func (pm *ProductMother) WithPriceFloat(price float64) *ProductMother {
 }
 
 func (pm *ProductMother) Build() (models.Product, error) {
-	return models.NewProduct(pm.Id, pm.Sku, pm.Name, pm.Category, pm.Price)
+	return models.NewProduct(pm.Id, pm.Sku, pm.Name, pm.CategoryID, pm.Price, pm.Category)
 }
 
 func (pm *ProductMother) MustBuild() models.Product {

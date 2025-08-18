@@ -8,6 +8,7 @@ import (
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/domain/models"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/domain/models/models_mothers"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/repository"
+	shared_repository "github.com/Akiles94/go-test-api/services/product/shared/infra/adapters/repository"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/suite"
@@ -51,7 +52,10 @@ func (suite *ProductRepositoryTestSuite) SetupSuite() {
 	suite.Require().NoError(err)
 
 	// Auto-migrate schema
-	err = db.AutoMigrate(&repository.ProductEntity{})
+	err = db.AutoMigrate(
+		&shared_repository.CategoryEntity{},
+		&shared_repository.ProductEntity{},
+	)
 	suite.Require().NoError(err)
 
 	// Create repository singleton
@@ -69,17 +73,36 @@ func (suite *ProductRepositoryTestSuite) TearDownTest() {
 	// Clean up all products after each test to ensure isolation
 	// Access DB through the repository's internal DB connection
 	if suite.repo != nil && suite.db != nil {
-		suite.db.Exec("TRUNCATE TABLE product_entities")
+		suite.db.Exec("TRUNCATE TABLE products")
+		suite.db.Exec("TRUNCATE TABLE categories CASCADE")
 	}
+}
+
+func (suite *ProductRepositoryTestSuite) createTestCategory() uuid.UUID {
+	categoryID := uuid.New()
+	uniqueSuffix := categoryID.String()[:8]
+	categoryEntity := &shared_repository.CategoryEntity{
+		ID:          categoryID,
+		Name:        fmt.Sprintf("Test Category %s", uniqueSuffix),
+		Slug:        fmt.Sprintf("test-category-%s", uniqueSuffix),
+		Description: "Test category description",
+		IsActive:    true,
+	}
+
+	err := suite.db.Create(categoryEntity).Error
+	suite.Require().NoError(err)
+
+	return categoryID
 }
 
 func (suite *ProductRepositoryTestSuite) TestCreate() {
 	suite.Run("should create product successfully", func() {
 		// Arrange
+		categoryID := suite.createTestCategory()
 		product := models_mothers.NewProductMother().
 			WithSku("POSTGRES-001").
 			WithName("PostgreSQL Test Product").
-			WithCategory("Database").
+			WithCategoryID(categoryID).
 			WithPriceFloat(99.99).
 			MustBuild()
 
@@ -96,13 +119,16 @@ func (suite *ProductRepositoryTestSuite) TestCreate() {
 		suite.Equal(product.ID(), retrieved.ID())
 		suite.Equal(product.Sku(), retrieved.Sku())
 		suite.Equal(product.Name(), retrieved.Name())
-		suite.Equal(product.Category(), retrieved.Category())
+		suite.Equal(product.CategoryID(), retrieved.CategoryID())
 		suite.True(product.Price().Equal(retrieved.Price()))
 	})
 
 	suite.Run("should return error when creating duplicate ID", func() {
 		// Arrange
-		product := models_mothers.NewProductMother().MustBuild()
+		categoryID := suite.createTestCategory()
+		product := models_mothers.NewProductMother().
+			WithCategoryID(categoryID).
+			MustBuild()
 
 		// Create product first time
 		err := suite.repo.Create(suite.ctx, product)
@@ -120,10 +146,11 @@ func (suite *ProductRepositoryTestSuite) TestCreate() {
 func (suite *ProductRepositoryTestSuite) TestGetByID() {
 	suite.Run("should get product successfully", func() {
 		// Arrange
+		categoryID := suite.createTestCategory()
 		originalProduct := models_mothers.NewProductMother().
 			WithSku("GET-001").
 			WithName("Get Test Product").
-			WithCategory("Test Category").
+			WithCategoryID(categoryID).
 			WithPriceFloat(150.75).
 			MustBuild()
 
@@ -132,14 +159,13 @@ func (suite *ProductRepositoryTestSuite) TestGetByID() {
 
 		// Act
 		retrievedProduct, err := suite.repo.GetByID(suite.ctx, originalProduct.ID())
-
 		// Assert
 		suite.Require().NoError(err)
 		suite.NotNil(retrievedProduct)
 		suite.Equal(originalProduct.ID(), retrievedProduct.ID())
 		suite.Equal(originalProduct.Sku(), retrievedProduct.Sku())
 		suite.Equal(originalProduct.Name(), retrievedProduct.Name())
-		suite.Equal(originalProduct.Category(), retrievedProduct.Category())
+		suite.Equal(originalProduct.CategoryID(), retrievedProduct.CategoryID())
 		suite.True(originalProduct.Price().Equal(retrievedProduct.Price()))
 	})
 
@@ -159,10 +185,11 @@ func (suite *ProductRepositoryTestSuite) TestGetByID() {
 func (suite *ProductRepositoryTestSuite) TestGetAll() {
 	suite.Run("should get all products without pagination", func() {
 		// Arrange
+		categoryID := suite.createTestCategory()
 		products := []models.Product{
-			models_mothers.NewProductMother().WithSku("GETALL-001").WithName("Product 1").MustBuild(),
-			models_mothers.NewProductMother().WithSku("GETALL-002").WithName("Product 2").MustBuild(),
-			models_mothers.NewProductMother().WithSku("GETALL-003").WithName("Product 3").MustBuild(),
+			models_mothers.NewProductMother().WithSku("GETALL-001").WithName("Product 1").WithCategoryID(categoryID).MustBuild(),
+			models_mothers.NewProductMother().WithSku("GETALL-002").WithName("Product 2").WithCategoryID(categoryID).MustBuild(),
+			models_mothers.NewProductMother().WithSku("GETALL-003").WithName("Product 3").WithCategoryID(categoryID).MustBuild(),
 		}
 
 		for _, product := range products {
@@ -182,9 +209,11 @@ func (suite *ProductRepositoryTestSuite) TestGetAll() {
 	suite.Run("should handle pagination with limit", func() {
 		// Arrange
 		for i := 1; i <= 5; i++ {
+			categoryID := suite.createTestCategory()
 			product := models_mothers.NewProductMother().
 				WithSku(fmt.Sprintf("LIMIT-%03d", i)).
 				WithName(fmt.Sprintf("Product %d", i)).
+				WithCategoryID(categoryID).
 				MustBuild()
 			err := suite.repo.Create(suite.ctx, product)
 			suite.Require().NoError(err)
@@ -204,9 +233,11 @@ func (suite *ProductRepositoryTestSuite) TestGetAll() {
 	suite.Run("should handle cursor pagination", func() {
 		// Arrange
 		for i := 1; i <= 4; i++ {
+			categoryID := suite.createTestCategory()
 			product := models_mothers.NewProductMother().
 				WithSku(fmt.Sprintf("CURSOR-%03d", i)).
 				WithName(fmt.Sprintf("Product %d", i)).
+				WithCategoryID(categoryID).
 				MustBuild()
 			err := suite.repo.Create(suite.ctx, product)
 			suite.Require().NoError(err)
@@ -237,10 +268,12 @@ func (suite *ProductRepositoryTestSuite) TestGetAll() {
 func (suite *ProductRepositoryTestSuite) TestUpdate() {
 	suite.Run("should update product successfully", func() {
 		// Arrange
+		categoryID := suite.createTestCategory()
+		updatedCategoryID := suite.createTestCategory()
 		original := models_mothers.NewProductMother().
 			WithSku("UPDATE-001").
 			WithName("Original Name").
-			WithCategory("Original Category").
+			WithCategoryID(categoryID).
 			WithPriceFloat(100.00).
 			MustBuild()
 
@@ -251,7 +284,7 @@ func (suite *ProductRepositoryTestSuite) TestUpdate() {
 			WithID(original.ID()).
 			WithSku("UPDATED-001").
 			WithName("Updated Name").
-			WithCategory("Updated Category").
+			WithCategoryID(updatedCategoryID).
 			WithPriceFloat(200.00).
 			MustBuild()
 
@@ -265,14 +298,15 @@ func (suite *ProductRepositoryTestSuite) TestUpdate() {
 		suite.Require().NoError(err)
 		suite.Equal("UPDATED-001", retrieved.Sku())
 		suite.Equal("Updated Name", retrieved.Name())
-		suite.Equal("Updated Category", retrieved.Category())
+		suite.Equal(updatedCategoryID, retrieved.CategoryID())
 		suite.True(decimal.NewFromFloat(200.00).Equal(retrieved.Price()))
 	})
 
 	suite.Run("should return error when updating non-existent product", func() {
 		// Arrange
 		nonExistentID := uuid.New()
-		product := models_mothers.NewProductMother().WithID(nonExistentID).MustBuild()
+		categoryID := suite.createTestCategory()
+		product := models_mothers.NewProductMother().WithID(nonExistentID).WithCategoryID(categoryID).MustBuild()
 
 		// Act
 		err := suite.repo.Update(suite.ctx, nonExistentID, product)
@@ -286,10 +320,11 @@ func (suite *ProductRepositoryTestSuite) TestUpdate() {
 func (suite *ProductRepositoryTestSuite) TestPatch() {
 	suite.Run("should patch product fields successfully", func() {
 		// Arrange
+		categoryID := suite.createTestCategory()
 		original := models_mothers.NewProductMother().
 			WithSku("PATCH-001").
 			WithName("Original Name").
-			WithCategory("Original Category").
+			WithCategoryID(categoryID).
 			WithPriceFloat(100.00).
 			MustBuild()
 
@@ -312,7 +347,7 @@ func (suite *ProductRepositoryTestSuite) TestPatch() {
 		suite.Equal("Patched Name", updated.Name())
 		suite.True(decimal.NewFromFloat(299.99).Equal(updated.Price()))
 		suite.Equal(original.Sku(), updated.Sku())
-		suite.Equal(original.Category(), updated.Category())
+		suite.Equal(original.CategoryID(), updated.CategoryID())
 	})
 
 	suite.Run("should return error when patching non-existent product", func() {
@@ -332,7 +367,8 @@ func (suite *ProductRepositoryTestSuite) TestPatch() {
 func (suite *ProductRepositoryTestSuite) TestDelete() {
 	suite.Run("should delete product successfully", func() {
 		// Arrange
-		product := models_mothers.NewProductMother().MustBuild()
+		categoryID := suite.createTestCategory()
+		product := models_mothers.NewProductMother().WithCategoryID(categoryID).MustBuild()
 		err := suite.repo.Create(suite.ctx, product)
 		suite.Require().NoError(err)
 

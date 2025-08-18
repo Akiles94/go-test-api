@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/domain/models"
+	"github.com/Akiles94/go-test-api/services/product/shared/infra/adapters/repository"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
@@ -21,12 +22,12 @@ func NewProductRepository(db *gorm.DB) *ProductRepository {
 }
 
 func (pr *ProductRepository) GetAll(ctx context.Context, cursor *string, limit *int) ([]models.Product, *string, error) {
-	var products []ProductEntity
+	var products []repository.ProductEntity
 	handledLimit := defaultLimit
 	if limit != nil {
 		handledLimit = *limit
 	}
-	query := pr.db.WithContext(ctx).Order("id ASC").Limit(handledLimit + oneMore)
+	query := pr.db.WithContext(ctx).Preload("Category").Order("id ASC").Limit(handledLimit + oneMore)
 	if cursor != nil {
 		parsedCursor, err := uuid.Parse(*cursor)
 		if err != nil {
@@ -56,8 +57,8 @@ func (pr *ProductRepository) GetAll(ctx context.Context, cursor *string, limit *
 	return productModels, nextCursor, nil
 }
 func (pr *ProductRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Product, error) {
-	var entity ProductEntity
-	if err := pr.db.WithContext(ctx).First(&entity, id).Error; err != nil {
+	var entity repository.ProductEntity
+	if err := pr.db.WithContext(ctx).Preload("Category").First(&entity, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -68,31 +69,25 @@ func (pr *ProductRepository) GetByID(ctx context.Context, id uuid.UUID) (models.
 	return *productModel, nil
 }
 func (pr *ProductRepository) Create(ctx context.Context, product models.Product) error {
-	productEntity := ProductEntity{
-		ID:       product.ID(),
-		Sku:      product.Sku(),
-		Name:     product.Name(),
-		Category: product.Category(),
-		Price:    product.Price(),
-	}
+	productEntity := repository.NewProductEntityFromDomain(product)
 	return pr.db.WithContext(ctx).Create(&productEntity).Error
 }
 func (pr *ProductRepository) Update(ctx context.Context, id uuid.UUID, product models.Product) error {
-	var storedProduct ProductEntity
+	var storedProduct repository.ProductEntity
 	if err := pr.db.WithContext(ctx).First(&storedProduct, id).Error; err != nil {
 		return err
 	}
 	storedProduct.Name = product.Name()
 	storedProduct.Price = product.Price()
 	storedProduct.Sku = product.Sku()
-	storedProduct.Category = product.Category()
+	storedProduct.CategoryID = product.CategoryID()
 	return pr.db.WithContext(ctx).Save(storedProduct).Error
 }
 func (pr *ProductRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return pr.db.WithContext(ctx).Delete(&ProductEntity{}, id).Error
+	return pr.db.WithContext(ctx).Delete(&repository.ProductEntity{}, id).Error
 }
 func (pr *ProductRepository) Patch(ctx context.Context, id uuid.UUID, updates map[string]interface{}) error {
-	var storedProduct ProductEntity
+	var storedProduct repository.ProductEntity
 	if err := pr.db.WithContext(ctx).First(&storedProduct, id).Error; err != nil {
 		return err
 	}
@@ -103,8 +98,8 @@ func (pr *ProductRepository) Patch(ctx context.Context, id uuid.UUID, updates ma
 	if updates["name"] != nil {
 		storedProduct.Name = updates["name"].(string)
 	}
-	if updates["category"] != nil {
-		storedProduct.Category = updates["category"].(string)
+	if updates["category_id"] != nil {
+		storedProduct.CategoryID = updates["category_id"].(uuid.UUID)
 	}
 	if updates["price"] != nil {
 		storedProduct.Price = updates["price"].(decimal.Decimal)

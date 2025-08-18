@@ -211,10 +211,10 @@ func (suite *ProductHandlerTestSuite) TestCreate() {
 	suite.Run("should create product successfully", func() {
 		// Arrange
 		createRequest := dto.CreateProductRequest{
-			Sku:      "TEST-001",
-			Name:     "Test Product",
-			Category: "Test Category",
-			Price:    99.99,
+			Sku:        "TEST-001",
+			Name:       "Test Product",
+			CategoryID: uuid.New(),
+			Price:      99.99,
 		}
 
 		suite.mockCreateUseCase.On("Execute", mock.Anything, mock.AnythingOfType("*models.product")).
@@ -256,10 +256,10 @@ func (suite *ProductHandlerTestSuite) TestUpdate() {
 		// Arrange
 		productID := uuid.New()
 		updateRequest := dto.CreateProductRequest{
-			Sku:      "UPDATED-001",
-			Name:     "Updated Product",
-			Category: "Updated Category",
-			Price:    199.99,
+			Sku:        "UPDATED-001",
+			Name:       "Updated Product",
+			CategoryID: uuid.New(),
+			Price:      199.99,
 		}
 
 		suite.mockUpdateUseCase.On("Execute", mock.Anything, productID, mock.AnythingOfType("*models.product")).

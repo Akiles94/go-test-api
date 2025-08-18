@@ -14,7 +14,7 @@ import (
 
 func TestCreateCategoryUseCase_ValidRequest_ShouldReturnCategoryResponse(t *testing.T) {
 	// Arrange
-	mockRepo := &use_cases_mocks.MockCategoryRepository{}
+	mockRepo := use_cases_mocks.NewMockCategoryRepository()
 	useCase := use_cases.NewCreateCategoryUseCase(mockRepo)
 
 	request := dto.CreateCategoryRequest{
@@ -40,7 +40,8 @@ func TestCreateCategoryUseCase_ValidRequest_ShouldReturnCategoryResponse(t *test
 
 func TestCreateCategoryUseCase_EmptyName_ShouldReturnError(t *testing.T) {
 	// Arrange
-	mockRepo := &use_cases_mocks.MockCategoryRepository{}
+	mockRepo := use_cases_mocks.NewMockCategoryRepository()
+	mockRepo.SetupExistsByNameForEmptyString()
 	useCase := use_cases.NewCreateCategoryUseCase(mockRepo)
 
 	request := dto.CreateCategoryRequest{

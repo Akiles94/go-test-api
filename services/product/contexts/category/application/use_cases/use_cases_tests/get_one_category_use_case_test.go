@@ -14,22 +14,18 @@ import (
 
 func TestGetOneCategoryUseCase_ValidId_ShouldReturnCategory(t *testing.T) {
 	// Arrange
-	mockRepo := &use_cases_mocks.MockCategoryRepository{}
+	mockRepo := use_cases_mocks.NewMockCategoryRepository()
+	category := models_mothers.NewCategoryMother().MustBuild()
+	mockRepo.SetupGetByIDSuccess(category)
 	useCase := use_cases.NewGetOneCategoryUseCase(mockRepo)
-	mother := models_mothers.NewCategoryMother()
-
-	categoryID := uuid.New()
-	category := mother.ValidCategoryWithId(categoryID)
-
-	mockRepo.On("GetByID", mock.Anything, categoryID).Return(category, nil)
 
 	// Act
-	response, err := useCase.Execute(context.Background(), categoryID)
+	response, err := useCase.Execute(context.Background(), category.ID())
 
 	// Assert
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
-	assert.Equal(t, categoryID, response.ID)
+	assert.Equal(t, category.ID(), response.ID)
 	assert.Equal(t, category.Name(), response.Name)
 	assert.Equal(t, category.Description(), response.Description)
 	assert.Equal(t, category.IsActive(), response.IsActive)
@@ -38,7 +34,8 @@ func TestGetOneCategoryUseCase_ValidId_ShouldReturnCategory(t *testing.T) {
 
 func TestGetOneCategoryUseCase_InvalidId_ShouldReturnError(t *testing.T) {
 	// Arrange
-	mockRepo := &use_cases_mocks.MockCategoryRepository{}
+	mockRepo := use_cases_mocks.NewMockCategoryRepository()
+	mockRepo.SetupGetByIDError()
 	useCase := use_cases.NewGetOneCategoryUseCase(mockRepo)
 
 	categoryID := uuid.New()

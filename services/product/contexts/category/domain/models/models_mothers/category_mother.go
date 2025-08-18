@@ -5,10 +5,20 @@ import (
 	"github.com/google/uuid"
 )
 
-type CategoryMother struct{}
+type CategoryMother struct {
+	Id          uuid.UUID
+	Name        string
+	Description string
+	IsActive    bool
+}
 
 func NewCategoryMother() *CategoryMother {
-	return &CategoryMother{}
+	return &CategoryMother{
+		Id:          uuid.New(),
+		Name:        "Electronics",
+		Description: "Electronic devices and accessories",
+		IsActive:    true,
+	}
 }
 
 func (cm *CategoryMother) ValidCategory() models.Category {
@@ -76,4 +86,16 @@ func (cm *CategoryMother) CategoryWithNilId() (models.Category, error) {
 		"Valid description",
 		true,
 	)
+}
+
+func (cm *CategoryMother) Build() (models.Category, error) {
+	return models.NewCategory(cm.Id, cm.Name, cm.Description, cm.IsActive)
+}
+
+func (cm *CategoryMother) MustBuild() models.Category {
+	category, err := cm.Build()
+	if err != nil {
+		panic("CategoryMother.MustBuild failed: " + err.Error())
+	}
+	return category
 }
