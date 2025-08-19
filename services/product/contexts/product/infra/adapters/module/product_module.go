@@ -51,7 +51,7 @@ func NewProductModule(db *gorm.DB) *ProductModule {
 		{
 			Method:    "POST",
 			Path:      "",
-			Protected: true,
+			Protected: false,
 			Handler:   handler.Create,
 			RateLimit: 10,
 		},

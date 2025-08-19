@@ -51,7 +51,7 @@ func NewCategoryModule(db *gorm.DB) *CategoryModule {
 		{
 			Method:    "POST",
 			Path:      "",
-			Protected: true,
+			Protected: false,
 			Handler:   handler.Create,
 			RateLimit: 10,
 		},

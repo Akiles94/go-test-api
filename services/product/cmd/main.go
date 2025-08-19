@@ -13,7 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Akiles94/go-test-api/services/product/config"
-	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/module"
+	category_module "github.com/Akiles94/go-test-api/services/product/contexts/category/infra/adapters/module"
+	product_module "github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/module"
 	"github.com/Akiles94/go-test-api/services/product/db"
 	"github.com/Akiles94/go-test-api/services/product/shared/infra/adapters/repository"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
@@ -46,8 +47,9 @@ func main() {
 	var modules []shared_ports.ModulePort
 
 	// Product module
-	productModule := module.NewProductModule(database)
-	modules = append(modules, productModule)
+	productModule := product_module.NewProductModule(database)
+	categoryModule := category_module.NewCategoryModule(database)
+	modules = append(modules, productModule, categoryModule)
 
 	serviceRegistryClientConfig := grpc_services.ServiceRegistryClientConfig{
 		GatewayAddress: config.Env.GatewayGRPCAddress,
@@ -94,11 +96,14 @@ func startServer(router *gin.Engine, modules []shared_ports.ModulePort) {
 	router.Use(middlewares.StructuredLogger())
 	router.Use(middlewares.RecoveryMiddleware())
 	router.Use(middlewares.RequestIDMiddleware())
+	router.Use(middlewares.ErrorHandlerMiddleware())
 	router.Use(middlewares.SecurityHeadersMiddleware())
 
 	for _, item := range modules {
 		switch mod := item.(type) {
-		case *module.ProductModule:
+		case *product_module.ProductModule:
+			mod.RegisterRoutes(router.Group(mod.GetPathPrefix()))
+		case *category_module.CategoryModule:
 			mod.RegisterRoutes(router.Group(mod.GetPathPrefix()))
 		}
 	}
