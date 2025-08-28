@@ -38,10 +38,10 @@ func (luc *LoginUseCase) Execute(ctx context.Context, registerDto dto.RegisterRe
 	email := registerDto.Email
 	user, err := luc.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		return nil, errUserNotFound
+		return nil, err
 	}
 	userPass := user.PasswordHash()
-	if err := luc.passHasher.ValidatePassword(registerDto.Password, userPass); err {
+	if isValid := luc.passHasher.ValidatePassword(registerDto.Password, userPass); !isValid {
 		return nil, errInvalidPassword
 	}
 	userName := user.Name()

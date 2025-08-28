@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Akiles94/go-test-api/services/user/contexts/user/domain/models"
-	"github.com/Akiles94/go-test-api/shared/infra/shared_handlers"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -30,12 +29,12 @@ func NewMockUserRepository() *MockUserRepository {
 }
 
 // CreateUser utils
-func (m *MockUserRepository) SetupCreateUserSuccess(user models.User) *mock.Call {
-	return m.On("CreateUser", mock.Anything, user).Return(nil)
+func (m *MockUserRepository) SetupCreateUserSuccess() *mock.Call {
+	return m.On("CreateUser", mock.Anything, mock.AnythingOfType("*models.user")).Return(nil)
 }
 
-func (m *MockUserRepository) SetupCreateUserError(user models.User, err error) *mock.Call {
-	return m.On("CreateUser", mock.Anything, user).Return(err)
+func (m *MockUserRepository) SetupCreateUserError(err error) *mock.Call {
+	return m.On("CreateUser", mock.Anything, mock.AnythingOfType("*models.user")).Return(err)
 }
 
 // GetUserByEmail utils
@@ -43,8 +42,8 @@ func (m *MockUserRepository) SetupGetUserByEmailSuccess(email string, user model
 	return m.On("GetUserByEmail", mock.Anything, email).Return(user, nil)
 }
 
-func (m *MockUserRepository) SetupGetUserByEmailNotFound(email string) *mock.Call {
-	return m.On("GetUserByEmail", mock.Anything, email).Return(nil, shared_handlers.ErrorCodeNotFound)
+func (m *MockUserRepository) SetupGetUserByEmailNotFound(email string, err error) *mock.Call {
+	return m.On("GetUserByEmail", mock.Anything, email).Return(nil, err)
 }
 
 func (m *MockUserRepository) SetupGetUserByEmailError(email string, err error) *mock.Call {

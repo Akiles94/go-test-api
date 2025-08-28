@@ -22,14 +22,14 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		user := models_mothers.NewUserMother().MustBuild()
 		email := user.Email()
-		password := "MySecurePass123!"
+		password := "Password123!"
 		userName := user.Name()
 
 		expectedToken := "access_token_123"
 		expectedRefreshToken := "refresh_token_123"
 
 		mockRepo.SetupGetUserByEmailSuccess(email, user)
-		mockHasher.SetupValidatePasswordTrue(password, user.Password())
+		mockHasher.SetupValidatePasswordTrue(password, user.PasswordHash())
 		mockAuth.SetupGenerateTokenSuccess(user.ID(), &email, &userName, expectedToken)
 		mockAuth.SetupGenerateRefreshTokenSuccess(user.ID(), email, expectedRefreshToken)
 
@@ -61,9 +61,9 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		mockAuth := use_cases_mocks.NewMockAuthService()
 
 		email := "nonexistent@example.com"
-		password := "MySecurePass123!"
+		password := "Password123!"
 
-		mockRepo.SetupGetUserByEmailNotFound(email)
+		mockRepo.SetupGetUserByEmailNotFound(email, errors.New("User not found"))
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
@@ -97,7 +97,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		wrongPassword := "WrongPassword123!"
 
 		mockRepo.SetupGetUserByEmailSuccess(email, user)
-		mockHasher.SetupValidatePasswordFalse(wrongPassword, user.Password())
+		mockHasher.SetupValidatePasswordFalse(wrongPassword, user.PasswordHash())
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
@@ -128,13 +128,13 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		user := models_mothers.NewUserMother().MustBuild()
 		email := user.Email()
-		password := "MySecurePass123!"
+		password := "Password123!"
 		userName := user.Name()
 
 		tokenError := errors.New("token generation failed")
 
 		mockRepo.SetupGetUserByEmailSuccess(email, user)
-		mockHasher.SetupValidatePasswordTrue(password, user.Password())
+		mockHasher.SetupValidatePasswordTrue(password, user.PasswordHash())
 		mockAuth.SetupGenerateTokenError(user.ID(), &email, &userName, tokenError)
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
@@ -166,14 +166,14 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		user := models_mothers.NewUserMother().MustBuild()
 		email := user.Email()
-		password := "MySecurePass123!"
+		password := "Password123!"
 		userName := user.Name()
 
 		expectedToken := "access_token_123"
 		refreshTokenError := errors.New("refresh token generation failed")
 
 		mockRepo.SetupGetUserByEmailSuccess(email, user)
-		mockHasher.SetupValidatePasswordTrue(password, user.Password())
+		mockHasher.SetupValidatePasswordTrue(password, user.PasswordHash())
 		mockAuth.SetupGenerateTokenSuccess(user.ID(), &email, &userName, expectedToken)
 		mockAuth.SetupGenerateRefreshTokenError(user.ID(), email, refreshTokenError)
 
@@ -204,7 +204,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		mockAuth := use_cases_mocks.NewMockAuthService()
 
 		email := "test@example.com"
-		password := "MySecurePass123!"
+		password := "Password123!"
 		repositoryError := errors.New("database connection failed")
 
 		mockRepo.SetupGetUserByEmailError(email, repositoryError)
@@ -222,7 +222,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, response)
-		assert.Contains(t, err.Error(), "User not found")
+		assert.Contains(t, err.Error(), "database connection failed")
 
 		mockRepo.AssertExpectations(t)
 		mockHasher.AssertNotCalled(t, "ValidatePassword")
