@@ -40,16 +40,19 @@ func (luc *LoginUseCase) Execute(ctx context.Context, registerDto dto.RegisterRe
 	if err != nil {
 		return nil, err
 	}
-	userPass := user.PasswordHash()
+	if user == nil {
+		return nil, errUserNotFound
+	}
+	userPass := (*user).Password()
 	if isValid := luc.passHasher.ValidatePassword(registerDto.Password, userPass); !isValid {
 		return nil, errInvalidPassword
 	}
-	userName := user.Name()
-	token, err := luc.authorizer.GenerateToken(ctx, user.ID(), &email, &userName)
+	userName := (*user).Name()
+	token, err := luc.authorizer.GenerateToken(ctx, (*user).ID(), &email, &userName)
 	if err != nil {
 		return nil, err
 	}
-	refreshToken, err := luc.authorizer.GenerateRefreshToken(ctx, user.ID(), email)
+	refreshToken, err := luc.authorizer.GenerateRefreshToken(ctx, (*user).ID(), email)
 	if err != nil {
 		return nil, err
 	}

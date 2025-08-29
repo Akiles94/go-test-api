@@ -28,8 +28,8 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		expectedToken := "access_token_123"
 		expectedRefreshToken := "refresh_token_123"
 
-		mockRepo.SetupGetUserByEmailSuccess(email, user)
-		mockHasher.SetupValidatePasswordTrue(password, user.PasswordHash())
+		mockRepo.SetupGetUserByEmailSuccess(email, &user)
+		mockHasher.SetupValidatePasswordTrue(password, user.Password())
 		mockAuth.SetupGenerateTokenSuccess(user.ID(), &email, &userName, expectedToken)
 		mockAuth.SetupGenerateRefreshTokenSuccess(user.ID(), email, expectedRefreshToken)
 
@@ -96,8 +96,8 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		email := user.Email()
 		wrongPassword := "WrongPassword123!"
 
-		mockRepo.SetupGetUserByEmailSuccess(email, user)
-		mockHasher.SetupValidatePasswordFalse(wrongPassword, user.PasswordHash())
+		mockRepo.SetupGetUserByEmailSuccess(email, &user)
+		mockHasher.SetupValidatePasswordFalse(wrongPassword, user.Password())
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
@@ -133,8 +133,8 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		tokenError := errors.New("token generation failed")
 
-		mockRepo.SetupGetUserByEmailSuccess(email, user)
-		mockHasher.SetupValidatePasswordTrue(password, user.PasswordHash())
+		mockRepo.SetupGetUserByEmailSuccess(email, &user)
+		mockHasher.SetupValidatePasswordTrue(password, user.Password())
 		mockAuth.SetupGenerateTokenError(user.ID(), &email, &userName, tokenError)
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
@@ -172,8 +172,8 @@ func TestLoginUseCase_Execute(t *testing.T) {
 		expectedToken := "access_token_123"
 		refreshTokenError := errors.New("refresh token generation failed")
 
-		mockRepo.SetupGetUserByEmailSuccess(email, user)
-		mockHasher.SetupValidatePasswordTrue(password, user.PasswordHash())
+		mockRepo.SetupGetUserByEmailSuccess(email, &user)
+		mockHasher.SetupValidatePasswordTrue(password, user.Password())
 		mockAuth.SetupGenerateTokenSuccess(user.ID(), &email, &userName, expectedToken)
 		mockAuth.SetupGenerateRefreshTokenError(user.ID(), email, refreshTokenError)
 

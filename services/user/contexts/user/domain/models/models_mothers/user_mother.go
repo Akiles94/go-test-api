@@ -22,7 +22,7 @@ func NewUserMother() *UserMother {
 		LastName:     "Doe",
 		Email:        "john.doe@example.com",
 		Password:     "Password123!",
-		PasswordHash: "$2a$10$EIXZQ1z5Q5Q5Q5Q5Q5Q5QO",
+		PasswordHash: "hashed_password_123",
 		Role:         models.RoleUser,
 	}
 }

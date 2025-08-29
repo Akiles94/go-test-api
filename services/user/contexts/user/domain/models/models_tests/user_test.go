@@ -83,9 +83,10 @@ func TestNewUser(t *testing.T) {
 		// Arrange
 		mother := models_mothers.NewUserMother()
 		invalidRole := models.Role(999)
+		hashedPassword := "hashed_password_123"
 
 		// Act
-		user, err := models.NewUser(mother.ID, mother.Name, mother.LastName, mother.Email, mother.Password, mother.PasswordHash, invalidRole)
+		user, err := models.NewUser(mother.ID, mother.Name, mother.LastName, mother.Email, mother.Password, hashedPassword, invalidRole)
 
 		// Assert
 		assert.Error(t, err)
