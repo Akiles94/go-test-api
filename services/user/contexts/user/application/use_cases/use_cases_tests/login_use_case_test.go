@@ -35,7 +35,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
-		request := dto.RegisterRequestDto{
+		request := dto.LoginRequestDto{
 			Email:    email,
 			Password: password,
 		}
@@ -67,7 +67,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
-		request := dto.RegisterRequestDto{
+		request := dto.LoginRequestDto{
 			Email:    email,
 			Password: password,
 		}
@@ -101,7 +101,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
-		request := dto.RegisterRequestDto{
+		request := dto.LoginRequestDto{
 			Email:    email,
 			Password: wrongPassword,
 		}
@@ -139,7 +139,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
-		request := dto.RegisterRequestDto{
+		request := dto.LoginRequestDto{
 			Email:    email,
 			Password: password,
 		}
@@ -179,7 +179,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
-		request := dto.RegisterRequestDto{
+		request := dto.LoginRequestDto{
 			Email:    email,
 			Password: password,
 		}
@@ -211,7 +211,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 
 		useCase := use_cases.NewLoginUseCase(mockRepo, mockHasher, mockAuth)
 
-		request := dto.RegisterRequestDto{
+		request := dto.LoginRequestDto{
 			Email:    email,
 			Password: password,
 		}

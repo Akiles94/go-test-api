@@ -34,8 +34,8 @@ func NewLoginUseCase(repo outbound.UserRepositoryPort, passHasher outbound.Passw
 	}
 }
 
-func (luc *LoginUseCase) Execute(ctx context.Context, registerDto dto.RegisterRequestDto) (*dto.LoginResponseDto, error) {
-	email := registerDto.Email
+func (luc *LoginUseCase) Execute(ctx context.Context, loginDto dto.LoginRequestDto) (*dto.LoginResponseDto, error) {
+	email := loginDto.Email
 	user, err := luc.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (luc *LoginUseCase) Execute(ctx context.Context, registerDto dto.RegisterRe
 		return nil, errUserNotFound
 	}
 	userPass := (*user).Password()
-	if isValid := luc.passHasher.ValidatePassword(registerDto.Password, userPass); !isValid {
+	if isValid := luc.passHasher.ValidatePassword(loginDto.Password, userPass); !isValid {
 		return nil, errInvalidPassword
 	}
 	userName := (*user).Name()
