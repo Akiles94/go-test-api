@@ -48,11 +48,12 @@ func (luc *LoginUseCase) Execute(ctx context.Context, loginDto dto.LoginRequestD
 		return nil, errInvalidPassword
 	}
 	userName := (*user).Name()
-	token, err := luc.authorizer.GenerateToken(ctx, (*user).ID(), &email, &userName)
+	role := (*user).Role()
+	token, err := luc.authorizer.GenerateToken(ctx, (*user).ID(), &email, &userName, role.String())
 	if err != nil {
 		return nil, err
 	}
-	refreshToken, err := luc.authorizer.GenerateRefreshToken(ctx, (*user).ID(), email)
+	refreshToken, err := luc.authorizer.GenerateRefreshToken(ctx, (*user).ID(), email, role.String())
 	if err != nil {
 		return nil, err
 	}

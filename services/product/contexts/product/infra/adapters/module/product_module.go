@@ -5,7 +5,6 @@ import (
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/adapters/repository"
 	"github.com/Akiles94/go-test-api/services/product/contexts/product/infra/handlers"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
-	"github.com/Akiles94/go-test-api/shared/infra/grpc/gen/registry"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -98,21 +97,6 @@ func (pm *ProductModule) RegisterRoutes(router *gin.RouterGroup) {
 			router.DELETE(route.Path, route.Handler)
 		}
 	}
-}
-
-func (pm *ProductModule) GetRouteDefinitions() []*registry.RouteInfo {
-	routeInfos := make([]*registry.RouteInfo, len(pm.routes))
-
-	for i, route := range pm.routes {
-		routeInfos[i] = &registry.RouteInfo{
-			Method:    route.Method,
-			Path:      pm.pathPrefix + route.Path,
-			Protected: route.Protected,
-			RateLimit: route.RateLimit,
-		}
-	}
-
-	return routeInfos
 }
 
 func (pm *ProductModule) GetPathPrefix() string {

@@ -24,13 +24,14 @@ func NewAuthService(jwtService shared_ports.JWTServicePort) shared_ports.AuthSer
 	}
 }
 
-func (a *AuthService) GenerateToken(ctx context.Context, userID uuid.UUID, email, name *string) (*value_objects.JWTToken, error) {
+func (a *AuthService) GenerateToken(ctx context.Context, userID uuid.UUID, email, name *string, role string) (*value_objects.JWTToken, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 
 	claims := &value_objects.UserClaims{
 		UserID:    userID,
 		Email:     email,
 		Name:      name,
+		Role:      role,
 		TokenType: value_objects.AccessToken,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -61,16 +62,17 @@ func (a *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*v
 	if time.Now().After(claims.ExpiresAt.Time) {
 		return nil, errors.New("refresh token expired")
 	}
-	return a.GenerateToken(ctx, claims.UserID, nil, nil)
+	return a.GenerateToken(ctx, claims.UserID, claims.Email, nil, claims.Role)
 }
 
-func (a *AuthService) GenerateRefreshToken(ctx context.Context, userID uuid.UUID, email string) (*value_objects.JWTToken, error) {
+func (a *AuthService) GenerateRefreshToken(ctx context.Context, userID uuid.UUID, email string, role string) (*value_objects.JWTToken, error) {
 	expirationTime := time.Now().Add(time.Duration(a.JWTRefreshExpirationDays) * oneDayInHours * time.Hour)
 
 	claims := &value_objects.UserClaims{
 		UserID:    userID,
-		Email:     nil,
+		Email:     &email,
 		Name:      nil,
+		Role:      role,
 		TokenType: value_objects.RefreshToken,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),

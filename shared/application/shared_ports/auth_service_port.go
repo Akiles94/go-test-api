@@ -8,8 +8,8 @@ import (
 )
 
 type AuthServicePort interface {
-	GenerateToken(ctx context.Context, userID uuid.UUID, email, name *string) (*value_objects.JWTToken, error)
+	GenerateToken(ctx context.Context, userID uuid.UUID, email, name *string, role string) (*value_objects.JWTToken, error)
 	ValidateToken(ctx context.Context, token string) (*value_objects.UserClaims, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*value_objects.JWTToken, error)
-	GenerateRefreshToken(ctx context.Context, userID uuid.UUID, email string) (*value_objects.JWTToken, error)
+	GenerateRefreshToken(ctx context.Context, userID uuid.UUID, email string, role string) (*value_objects.JWTToken, error)
 }

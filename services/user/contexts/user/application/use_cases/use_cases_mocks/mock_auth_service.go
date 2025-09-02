@@ -12,8 +12,8 @@ type MockAuthService struct {
 	mock.Mock
 }
 
-func (m *MockAuthService) GenerateToken(ctx context.Context, userID uuid.UUID, email, name *string) (*value_objects.JWTToken, error) {
-	args := m.Called(ctx, userID, email, name)
+func (m *MockAuthService) GenerateToken(ctx context.Context, userID uuid.UUID, email, name *string, role string) (*value_objects.JWTToken, error) {
+	args := m.Called(ctx, userID, email, name, role)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -36,8 +36,8 @@ func (m *MockAuthService) RefreshToken(ctx context.Context, refreshToken string)
 	return args.Get(0).(*value_objects.JWTToken), args.Error(1)
 }
 
-func (m *MockAuthService) GenerateRefreshToken(ctx context.Context, userID uuid.UUID, email string) (*value_objects.JWTToken, error) {
-	args := m.Called(ctx, userID, email)
+func (m *MockAuthService) GenerateRefreshToken(ctx context.Context, userID uuid.UUID, email, role string) (*value_objects.JWTToken, error) {
+	args := m.Called(ctx, userID, email, role)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

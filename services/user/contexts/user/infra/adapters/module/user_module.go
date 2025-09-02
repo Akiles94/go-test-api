@@ -6,7 +6,6 @@ import (
 	"github.com/Akiles94/go-test-api/services/user/contexts/user/infra/adapters/repository"
 	"github.com/Akiles94/go-test-api/services/user/contexts/user/infra/handlers"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
-	"github.com/Akiles94/go-test-api/shared/infra/grpc/gen/registry"
 	"github.com/Akiles94/go-test-api/shared/infra/shared_adapters"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -31,16 +30,23 @@ func NewUserModule(db *gorm.DB) *UserModule {
 	routes := []shared_ports.RouteDefinition{
 		{
 			Method:    "POST",
-			Path:      pathPrefix + "/login",
+			Path:      "/auth/login",
 			Protected: false,
 			Handler:   handler.Login,
 			RateLimit: 10,
 		},
 		{
 			Method:    "POST",
-			Path:      pathPrefix + "/register",
+			Path:      "/auth/register",
 			Protected: false,
 			Handler:   handler.Register,
+			RateLimit: 10,
+		},
+		{
+			Method:    "GET",
+			Path:      "/auth/validate",
+			Protected: false,
+			Handler:   handler.ValidateToken,
 			RateLimit: 10,
 		},
 	}
@@ -65,21 +71,6 @@ func (um *UserModule) RegisterRoutes(router *gin.RouterGroup) {
 			router.DELETE(route.Path, route.Handler)
 		}
 	}
-}
-
-func (um *UserModule) GetRouteDefinitions() []*registry.RouteInfo {
-	routeInfos := make([]*registry.RouteInfo, len(um.routes))
-
-	for i, route := range um.routes {
-		routeInfos[i] = &registry.RouteInfo{
-			Method:    route.Method,
-			Path:      um.pathPrefix + route.Path,
-			Protected: route.Protected,
-			RateLimit: route.RateLimit,
-		}
-	}
-
-	return routeInfos
 }
 
 func (um *UserModule) GetPathPrefix() string {
