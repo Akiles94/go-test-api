@@ -4,14 +4,17 @@
 build:
 	@powershell -ExecutionPolicy Bypass -File scripts/build.ps1
 
-deploy: build
+deploy:
 	@powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1
+
+debug:
+	@powershell -ExecutionPolicy Bypass -File scripts/debug.ps1
 
 test:
 	@powershell -ExecutionPolicy Bypass -File scripts/test.ps1
 
 clean:
-	@kubectl delete -f . --recursive --ignore-not-found=true
+	@powershell -ExecutionPolicy Bypass -File scripts/clean.ps1
 
 logs-user:
 	@kubectl logs -f deployment/user-service

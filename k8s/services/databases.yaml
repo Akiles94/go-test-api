@@ -1,4 +1,6 @@
 # k8s/services/databases.yaml
+
+# ============ USER DATABASE ============
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -52,11 +54,14 @@ spec:
         - name: user-db-storage
           persistentVolumeClaim:
             claimName: user-db-pvc
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: user-db
+  labels:
+    app: user-db
 spec:
   selector:
     app: user-db
@@ -64,19 +69,23 @@ spec:
     - port: 5432
       targetPort: 5432
   type: ClusterIP
+
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: user-db-pvc
+  labels:
+    app: user-db
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
+
 ---
-# Product Database
+# ============ PRODUCT DATABASE ============
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -130,11 +139,14 @@ spec:
         - name: product-db-storage
           persistentVolumeClaim:
             claimName: product-db-pvc
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: product-db
+  labels:
+    app: product-db
 spec:
   selector:
     app: product-db
@@ -142,11 +154,14 @@ spec:
     - port: 5432
       targetPort: 5432
   type: ClusterIP
+
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: product-db-pvc
+  labels:
+    app: product-db
 spec:
   accessModes:
     - ReadWriteOnce

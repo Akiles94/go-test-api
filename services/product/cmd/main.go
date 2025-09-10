@@ -55,7 +55,7 @@ func main() {
 
 func startServer(router *gin.Engine, modules []shared_ports.ModulePort) {
 	// Product Health check
-	router.GET("/health", func(c *gin.Context) {
+	router.GET("/products/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "healthy",
 			"service": "product-service",
@@ -69,13 +69,14 @@ func startServer(router *gin.Engine, modules []shared_ports.ModulePort) {
 	router.Use(middlewares.RequestIDMiddleware())
 	router.Use(middlewares.ErrorHandlerMiddleware())
 	router.Use(middlewares.SecurityHeadersMiddleware())
+	apiV1 := router.Group("/api/v1")
 
 	for _, item := range modules {
 		switch mod := item.(type) {
 		case *product_module.ProductModule:
-			mod.RegisterRoutes(router.Group(mod.GetPathPrefix()))
+			mod.RegisterRoutes(apiV1.Group(mod.GetPathPrefix()))
 		case *category_module.CategoryModule:
-			mod.RegisterRoutes(router.Group(mod.GetPathPrefix()))
+			mod.RegisterRoutes(apiV1.Group(mod.GetPathPrefix()))
 		}
 	}
 

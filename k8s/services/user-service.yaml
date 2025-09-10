@@ -48,13 +48,13 @@ spec:
                   key: jwt-secret
           livenessProbe:
             httpGet:
-              path: /health
+              path: /users/health
               port: 8080
             initialDelaySeconds: 45
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /health
+              path: /users/health
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 5

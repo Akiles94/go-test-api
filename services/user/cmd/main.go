@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Akiles94/go-test-api/services/product/db"
 	"github.com/Akiles94/go-test-api/services/user/config"
 	"github.com/Akiles94/go-test-api/services/user/contexts/user/infra/adapters/module"
 	"github.com/Akiles94/go-test-api/services/user/contexts/user/infra/adapters/repository"
+	"github.com/Akiles94/go-test-api/services/user/db"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
 	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
 	"github.com/gin-gonic/gin"
@@ -37,15 +37,15 @@ func main() {
 
 	var modules []shared_ports.ModulePort
 
-	userModule := module.NewUserModule(database)
-	modules = append(modules, userModule)
+	authModule := module.NewAuthModule(database)
+	modules = append(modules, authModule)
 
 	startServer(router, modules)
 }
 
 func startServer(router *gin.Engine, modules []shared_ports.ModulePort) {
 	// User Health check
-	router.GET("/health", func(c *gin.Context) {
+	router.GET("/users/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "healthy",
 			"service": "user-service",
@@ -59,11 +59,12 @@ func startServer(router *gin.Engine, modules []shared_ports.ModulePort) {
 	router.Use(middlewares.RequestIDMiddleware())
 	router.Use(middlewares.ErrorHandlerMiddleware())
 	router.Use(middlewares.SecurityHeadersMiddleware())
+	apiV1 := router.Group("/api/v1")
 
 	for _, item := range modules {
 		switch mod := item.(type) {
-		case *module.UserModule:
-			mod.RegisterRoutes(router.Group(mod.GetPathPrefix()))
+		case *module.AuthModule:
+			mod.RegisterRoutes(apiV1.Group(mod.GetPathPrefix()))
 		}
 	}
 

@@ -19,7 +19,7 @@ spec:
         - name: product-service
           image: product-service:local
           ports:
-            - containerPort: 8080 # Internamente puede usar 8080
+            - containerPort: 8080
           envFrom:
             - configMapRef:
                 name: product-service-config
@@ -42,13 +42,13 @@ spec:
                   key: product-db-name
           livenessProbe:
             httpGet:
-              path: /health
+              path: /products/health
               port: 8080
             initialDelaySeconds: 45
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /health
+              path: /products/health
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 5
