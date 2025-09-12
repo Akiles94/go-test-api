@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/Akiles94/go-test-api/services/user/config"
-	"github.com/Akiles94/go-test-api/services/user/contexts/user/infra/adapters/module"
-	"github.com/Akiles94/go-test-api/services/user/contexts/user/infra/adapters/repository"
+	"github.com/Akiles94/go-test-api/services/user/contexts/auth/infra/adapters/module"
+	"github.com/Akiles94/go-test-api/services/user/contexts/auth/infra/adapters/repository"
 	"github.com/Akiles94/go-test-api/services/user/db"
 	"github.com/Akiles94/go-test-api/shared/application/shared_ports"
 	"github.com/Akiles94/go-test-api/shared/infra/middlewares"
