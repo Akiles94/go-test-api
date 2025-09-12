@@ -20,6 +20,7 @@ func NewAuthHandler(loginUseCase inbound.LoginUseCasePort, registerUseCase inbou
 	return &AuthHandler{
 		loginUseCase:    loginUseCase,
 		registerUseCase: registerUseCase,
+		jwtService:      jwtService,
 	}
 }
 
