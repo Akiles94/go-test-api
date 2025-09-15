@@ -16,12 +16,12 @@ const bottomLimitValue = 1
 
 // CategoryHandler handles HTTP requests for categories
 type CategoryHandler struct {
-	createCategoryUseCase   inbound.CreateCategoryUseCasePort
-	updateCategoryUseCase   inbound.UpdateCategoryUseCasePort
-	patchCategoryUseCase    inbound.PatchCategoryUseCasePort
-	deleteCategoryUseCase   inbound.DeleteCategoryUseCasePort
-	getAllCategoriesUseCase inbound.GetAllCategoriesUseCasePort
-	getOneCategoryUseCase   inbound.GetOneCategoryUseCasePort
+	createCategoryUseCase inbound.CreateCategoryUseCasePort
+	updateCategoryUseCase inbound.UpdateCategoryUseCasePort
+	patchCategoryUseCase  inbound.PatchCategoryUseCasePort
+	deleteCategoryUseCase inbound.DeleteCategoryUseCasePort
+	listCategoriesUseCase inbound.ListCategoriesUseCasePort
+	getCategoryUseCase    inbound.GetCategoryUseCasePort
 }
 
 // NewCategoryHandler creates a new CategoryHandler
@@ -30,16 +30,16 @@ func NewCategoryHandler(
 	updateCategoryUseCase inbound.UpdateCategoryUseCasePort,
 	patchCategoryUseCase inbound.PatchCategoryUseCasePort,
 	deleteCategoryUseCase inbound.DeleteCategoryUseCasePort,
-	getAllCategoriesUseCase inbound.GetAllCategoriesUseCasePort,
-	getOneCategoryUseCase inbound.GetOneCategoryUseCasePort,
+	listCategoriesUseCase inbound.ListCategoriesUseCasePort,
+	getCategoryUseCase inbound.GetCategoryUseCasePort,
 ) *CategoryHandler {
 	return &CategoryHandler{
-		createCategoryUseCase:   createCategoryUseCase,
-		updateCategoryUseCase:   updateCategoryUseCase,
-		patchCategoryUseCase:    patchCategoryUseCase,
-		deleteCategoryUseCase:   deleteCategoryUseCase,
-		getAllCategoriesUseCase: getAllCategoriesUseCase,
-		getOneCategoryUseCase:   getOneCategoryUseCase,
+		createCategoryUseCase: createCategoryUseCase,
+		updateCategoryUseCase: updateCategoryUseCase,
+		patchCategoryUseCase:  patchCategoryUseCase,
+		deleteCategoryUseCase: deleteCategoryUseCase,
+		listCategoriesUseCase: listCategoriesUseCase,
+		getCategoryUseCase:    getCategoryUseCase,
 	}
 }
 
@@ -78,7 +78,7 @@ func (ch *CategoryHandler) GetPaginated(c *gin.Context) {
 		cursorPtr = &cursor
 	}
 
-	result, err := ch.getAllCategoriesUseCase.Execute(c.Request.Context(), cursorPtr, limit)
+	result, err := ch.listCategoriesUseCase.Execute(c.Request.Context(), cursorPtr, limit)
 	if err != nil {
 		c.Error(err)
 		return
@@ -107,7 +107,7 @@ func (ch *CategoryHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	result, err := ch.getOneCategoryUseCase.Execute(c.Request.Context(), id)
+	result, err := ch.getCategoryUseCase.Execute(c.Request.Context(), id)
 	if err != nil {
 		c.Error(err)
 		return

@@ -11,6 +11,7 @@ type ProductEntity struct {
 	gorm.Model
 	ID         uuid.UUID `gorm:"type:uuid;primaryKey"`
 	Sku        string    `gorm:"unique"`
+	Stock      int
 	Name       string
 	Price      decimal.Decimal `gorm:"type:decimal(10,2)"`
 	CategoryID uuid.UUID
@@ -28,6 +29,7 @@ func NewProductEntityFromDomain(product models.Product) *ProductEntity {
 		Name:       product.Name(),
 		Price:      product.Price(),
 		CategoryID: product.CategoryID(),
+		Stock:      product.Stock(),
 	}
 }
 
@@ -49,6 +51,7 @@ func (p *ProductEntity) ToDomainModel() *models.Product {
 		p.Name,
 		p.CategoryID,
 		p.Price,
+		p.Stock,
 		category,
 	)
 	if err != nil {

@@ -12,12 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func GetOneProductUseCase_Execute(t *testing.T) {
+func GetProductUseCase_Execute(t *testing.T) {
 	t.Run("should return product by ID successfully", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
 		mockRepo := use_cases_mocks.NewMockProductRepository()
-		useCase := use_cases.NewGetOneProductUseCase(mockRepo)
+		useCase := use_cases.NewGetProductUseCase(mockRepo)
 
 		productID := uuid.New()
 		expectedProduct := models_mothers.NewProductMother().MustBuild()
@@ -37,7 +37,7 @@ func GetOneProductUseCase_Execute(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
 		mockRepo := use_cases_mocks.NewMockProductRepository()
-		useCase := use_cases.NewGetOneProductUseCase(mockRepo)
+		useCase := use_cases.NewGetProductUseCase(mockRepo)
 
 		productID := uuid.New()
 		expectedError := value_objects.DomainError{

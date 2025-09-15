@@ -9,17 +9,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type GetOneCategoryUseCase struct {
+type GetCategoryUseCase struct {
 	categoryRepository outbound.CategoryRepositoryPort
 }
 
-func NewGetOneCategoryUseCase(categoryRepository outbound.CategoryRepositoryPort) inbound.GetOneCategoryUseCasePort {
-	return &GetOneCategoryUseCase{
+func NewGetCategoryUseCase(categoryRepository outbound.CategoryRepositoryPort) inbound.GetCategoryUseCasePort {
+	return &GetCategoryUseCase{
 		categoryRepository: categoryRepository,
 	}
 }
 
-func (uc *GetOneCategoryUseCase) Execute(ctx context.Context, id uuid.UUID) (*dto.CategoryResponse, error) {
+func (uc *GetCategoryUseCase) Execute(ctx context.Context, id uuid.UUID) (*dto.CategoryResponse, error) {
 	category, err := uc.categoryRepository.GetByID(ctx, id)
 	if err != nil {
 		return nil, err

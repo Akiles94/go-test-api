@@ -18,23 +18,23 @@ const bottomLimitValue = 1
 
 // ProductHandler handles HTTP requests for products
 type ProductHandler struct {
-	createProductUseCase  inbound.CreateProductUseCasePort
-	updateProductUseCase  inbound.UpdateProductUseCasePort
-	patchProductUseCase   inbound.PatchProductUseCasePort
-	deleteProductUseCase  inbound.DeleteProductUseCasePort
-	getAllProductsUseCase inbound.GetAllProductsUseCasePort
-	getOneProductUseCase  inbound.GetOneProductUseCasePort
+	createProductUseCase inbound.CreateProductUseCasePort
+	updateProductUseCase inbound.UpdateProductUseCasePort
+	patchProductUseCase  inbound.PatchProductUseCasePort
+	deleteProductUseCase inbound.DeleteProductUseCasePort
+	listProductsUseCase  inbound.ListProductsUseCasePort
+	getProductUseCase    inbound.GetProductUseCasePort
 }
 
 // NewProductHandler creates a new ProductHandler
-func NewProductHandler(createProductUseCase inbound.CreateProductUseCasePort, updateProductUseCase inbound.UpdateProductUseCasePort, patchProductUseCase inbound.PatchProductUseCasePort, deleteProductUseCase inbound.DeleteProductUseCasePort, getAllProductsUseCase inbound.GetAllProductsUseCasePort, getOneProductUseCase inbound.GetOneProductUseCasePort) *ProductHandler {
+func NewProductHandler(createProductUseCase inbound.CreateProductUseCasePort, updateProductUseCase inbound.UpdateProductUseCasePort, patchProductUseCase inbound.PatchProductUseCasePort, deleteProductUseCase inbound.DeleteProductUseCasePort, listProductsUseCase inbound.ListProductsUseCasePort, getProductUseCase inbound.GetProductUseCasePort) *ProductHandler {
 	return &ProductHandler{
-		createProductUseCase:  createProductUseCase,
-		updateProductUseCase:  updateProductUseCase,
-		patchProductUseCase:   patchProductUseCase,
-		deleteProductUseCase:  deleteProductUseCase,
-		getAllProductsUseCase: getAllProductsUseCase,
-		getOneProductUseCase:  getOneProductUseCase,
+		createProductUseCase: createProductUseCase,
+		updateProductUseCase: updateProductUseCase,
+		patchProductUseCase:  patchProductUseCase,
+		deleteProductUseCase: deleteProductUseCase,
+		listProductsUseCase:  listProductsUseCase,
+		getProductUseCase:    getProductUseCase,
 	}
 }
 
@@ -83,7 +83,7 @@ func (ph *ProductHandler) GetPaginated(c *gin.Context) {
 
 		limit = &limitValue
 	}
-	products, nextCursor, err := ph.getAllProductsUseCase.Execute(c.Request.Context(), cursor, limit)
+	products, nextCursor, err := ph.listProductsUseCase.Execute(c.Request.Context(), cursor, limit)
 	if err != nil {
 		c.Error(err)
 		return
@@ -116,7 +116,7 @@ func (ph *ProductHandler) GetByID(c *gin.Context) {
 		c.Error(shared_handlers.ErrInvalidUUID)
 		return
 	}
-	product, err := ph.getOneProductUseCase.Execute(c.Request.Context(), id)
+	product, err := ph.getProductUseCase.Execute(c.Request.Context(), id)
 	if err != nil {
 		c.Error(err)
 		return

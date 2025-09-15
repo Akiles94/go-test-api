@@ -7,6 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type GetOneProductUseCasePort interface {
+type GetProductUseCasePort interface {
 	Execute(ctx context.Context, id uuid.UUID) (models.Product, error)
 }

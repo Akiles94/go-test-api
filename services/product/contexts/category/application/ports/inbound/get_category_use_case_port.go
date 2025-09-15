@@ -7,6 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type GetOneCategoryUseCasePort interface {
+type GetCategoryUseCasePort interface {
 	Execute(ctx context.Context, id uuid.UUID) (*dto.CategoryResponse, error)
 }

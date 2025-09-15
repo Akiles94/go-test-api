@@ -9,6 +9,7 @@ import (
 type ProductMother struct {
 	Id         uuid.UUID
 	Sku        string
+	Stock      int
 	Name       string
 	CategoryID uuid.UUID
 	Category   *models.Category
@@ -24,6 +25,7 @@ func NewProductMother() *ProductMother {
 		CategoryID: category.ID(),
 		Category:   &category,
 		Price:      decimal.NewFromFloat(99.99),
+		Stock:      100,
 	}
 }
 
@@ -34,6 +36,10 @@ func (pm *ProductMother) WithID(id uuid.UUID) *ProductMother {
 
 func (pm *ProductMother) WithSku(sku string) *ProductMother {
 	pm.Sku = sku
+	return pm
+}
+func (pm *ProductMother) WithStock(stock int) *ProductMother {
+	pm.Stock = stock
 	return pm
 }
 
@@ -58,7 +64,7 @@ func (pm *ProductMother) WithPriceFloat(price float64) *ProductMother {
 }
 
 func (pm *ProductMother) Build() (models.Product, error) {
-	return models.NewProduct(pm.Id, pm.Sku, pm.Name, pm.CategoryID, pm.Price, pm.Category)
+	return models.NewProduct(pm.Id, pm.Sku, pm.Name, pm.CategoryID, pm.Price, pm.Stock, pm.Category)
 }
 
 func (pm *ProductMother) MustBuild() models.Product {

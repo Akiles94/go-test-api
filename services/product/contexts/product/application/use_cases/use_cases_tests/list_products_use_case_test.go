@@ -12,12 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func GetAllProductsUseCase_Execute(t *testing.T) {
+func ListProductsUseCase_Execute(t *testing.T) {
 	t.Run("should get all products successfully", func(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
 		mockRepo := use_cases_mocks.NewMockProductRepository()
-		useCase := use_cases.NewGetAllProductsUseCase(mockRepo)
+		useCase := use_cases.NewListProductsUseCase(mockRepo)
 
 		cursor := "someCursor"
 		limit := 10
@@ -44,7 +44,7 @@ func GetAllProductsUseCase_Execute(t *testing.T) {
 		// Arrange
 		ctx := context.Background()
 		mockRepo := use_cases_mocks.NewMockProductRepository()
-		useCase := use_cases.NewGetAllProductsUseCase(mockRepo)
+		useCase := use_cases.NewListProductsUseCase(mockRepo)
 
 		cursor := "someCursor"
 		limit := 10

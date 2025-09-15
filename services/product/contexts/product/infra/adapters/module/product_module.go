@@ -23,15 +23,15 @@ func NewProductModule(db *gorm.DB) *ProductModule {
 	updateProductUseCase := use_cases.NewUpdateProductUseCase(repo)
 	patchProductUseCase := use_cases.NewPatchProductUseCase(repo)
 	deleteProductUseCase := use_cases.NewDeleteProductUseCase(repo)
-	getAllProductsUseCase := use_cases.NewGetAllProductsUseCase(repo)
-	getOneProductUseCase := use_cases.NewGetOneProductUseCase(repo)
+	listProductsUseCase := use_cases.NewListProductsUseCase(repo)
+	getProductUseCase := use_cases.NewGetProductUseCase(repo)
 	handler := handlers.NewProductHandler(
 		createProductUseCase,
 		updateProductUseCase,
 		patchProductUseCase,
 		deleteProductUseCase,
-		getAllProductsUseCase,
-		getOneProductUseCase)
+		listProductsUseCase,
+		getProductUseCase)
 	routes := []shared_ports.RouteDefinition{
 		{
 			Method:    "GET",

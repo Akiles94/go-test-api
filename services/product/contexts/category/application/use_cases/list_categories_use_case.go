@@ -9,17 +9,17 @@ import (
 	"github.com/Akiles94/go-test-api/shared/application/shared_dto"
 )
 
-type GetAllCategoriesUseCase struct {
+type ListCategoriesUseCase struct {
 	categoryRepository outbound.CategoryRepositoryPort
 }
 
-func NewGetAllCategoriesUseCase(categoryRepository outbound.CategoryRepositoryPort) inbound.GetAllCategoriesUseCasePort {
-	return &GetAllCategoriesUseCase{
+func NewListCategoriesUseCase(categoryRepository outbound.CategoryRepositoryPort) inbound.ListCategoriesUseCasePort {
+	return &ListCategoriesUseCase{
 		categoryRepository: categoryRepository,
 	}
 }
 
-func (uc *GetAllCategoriesUseCase) Execute(ctx context.Context, cursor *string, limit int) (*dto.PaginatedCategoryResponse, error) {
+func (uc *ListCategoriesUseCase) Execute(ctx context.Context, cursor *string, limit int) (*dto.PaginatedCategoryResponse, error) {
 	categories, nextCursor, err := uc.categoryRepository.GetAll(ctx, cursor, limit)
 	if err != nil {
 		return nil, err

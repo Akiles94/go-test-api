@@ -8,6 +8,7 @@ import (
 
 type CreateProductRequest struct {
 	Sku        string    `json:"sku" binding:"required"`
+	Stock      int       `json:"stock" binding:"required,min=0"`
 	Name       string    `json:"name" binding:"required"`
 	CategoryID uuid.UUID `json:"category_id" binding:"required"`
 	Price      float64   `json:"price" binding:"required,min=0"`
@@ -20,6 +21,7 @@ func (c *CreateProductRequest) ToDomainModel() (models.Product, error) {
 		c.Name,
 		c.CategoryID,
 		decimal.NewFromFloat(c.Price),
+		c.Stock,
 		nil,
 	)
 }

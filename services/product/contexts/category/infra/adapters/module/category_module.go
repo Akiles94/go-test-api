@@ -23,15 +23,15 @@ func NewCategoryModule(db *gorm.DB) *CategoryModule {
 	updateCategoryUseCase := use_cases.NewUpdateCategoryUseCase(repo)
 	patchCategoryUseCase := use_cases.NewPatchCategoryUseCase(repo)
 	deleteCategoryUseCase := use_cases.NewDeleteCategoryUseCase(repo)
-	getAllCategoriesUseCase := use_cases.NewGetAllCategoriesUseCase(repo)
-	getOneCategoryUseCase := use_cases.NewGetOneCategoryUseCase(repo)
+	listCategoriesUseCase := use_cases.NewListCategoriesUseCase(repo)
+	getCategoryUseCase := use_cases.NewGetCategoryUseCase(repo)
 	handler := handlers.NewCategoryHandler(
 		createCategoryUseCase,
 		updateCategoryUseCase,
 		patchCategoryUseCase,
 		deleteCategoryUseCase,
-		getAllCategoriesUseCase,
-		getOneCategoryUseCase)
+		listCategoriesUseCase,
+		getCategoryUseCase)
 	routes := []shared_ports.RouteDefinition{
 		{
 			Method:    "GET",

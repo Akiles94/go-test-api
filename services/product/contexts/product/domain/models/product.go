@@ -41,6 +41,7 @@ type Product interface {
 	CategoryID() uuid.UUID
 	Category() *Category
 	Price() decimal.Decimal
+	Stock() int
 }
 
 type product struct {
@@ -50,9 +51,10 @@ type product struct {
 	categoryID uuid.UUID
 	category   *Category
 	price      decimal.Decimal
+	stock      int
 }
 
-func NewProduct(id uuid.UUID, sku, name string, categoryID uuid.UUID, price decimal.Decimal, category *Category) (Product, error) {
+func NewProduct(id uuid.UUID, sku, name string, categoryID uuid.UUID, price decimal.Decimal, stock int, category *Category) (Product, error) {
 	if price.IsNegative() {
 		return nil, ErrProductPriceNegative
 	}
@@ -75,6 +77,7 @@ func NewProduct(id uuid.UUID, sku, name string, categoryID uuid.UUID, price deci
 		name:       name,
 		categoryID: categoryID,
 		price:      price,
+		stock:      stock,
 		category:   category,
 	}, nil
 }
@@ -101,4 +104,8 @@ func (p *product) Category() *Category {
 
 func (p *product) Price() decimal.Decimal {
 	return p.price
+}
+
+func (p *product) Stock() int {
+	return p.stock
 }

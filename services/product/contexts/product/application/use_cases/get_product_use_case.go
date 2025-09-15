@@ -8,16 +8,16 @@ import (
 	"github.com/google/uuid"
 )
 
-type GetOneProductUseCase struct {
+type GetProductUseCase struct {
 	repo outbound.ProductRepositoryPort
 }
 
-func NewGetOneProductUseCase(repo outbound.ProductRepositoryPort) *GetOneProductUseCase {
-	return &GetOneProductUseCase{
+func NewGetProductUseCase(repo outbound.ProductRepositoryPort) *GetProductUseCase {
+	return &GetProductUseCase{
 		repo: repo,
 	}
 }
 
-func (uc *GetOneProductUseCase) Execute(ctx context.Context, id uuid.UUID) (models.Product, error) {
+func (uc *GetProductUseCase) Execute(ctx context.Context, id uuid.UUID) (models.Product, error) {
 	return uc.repo.GetByID(ctx, id)
 }
