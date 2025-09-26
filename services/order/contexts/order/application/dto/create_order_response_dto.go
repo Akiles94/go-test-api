@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/google/uuid"
+
 type CreateOrderResponseDto struct {
-	ID string `json:"id"`
+	ID uuid.UUID `json:"id"`
 }

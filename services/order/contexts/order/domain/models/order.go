@@ -10,16 +10,6 @@ const (
 	StatusCancelled Status = "cancelled"
 )
 
-type orderItem struct {
-	productID uuid.UUID
-	quantity  int
-}
-
-type OrderItem interface {
-	ProductID() uuid.UUID
-	Quantity() int
-}
-
 type Order interface {
 	ID() uuid.UUID
 	UserID() uuid.UUID
@@ -49,13 +39,6 @@ func NewOrder(id, userID uuid.UUID, status Status, address string, items []Order
 	}
 }
 
-func NewOrderItem(productID uuid.UUID, quantity int) OrderItem {
-	return &orderItem{
-		productID: productID,
-		quantity:  quantity,
-	}
-}
-
 func (o *order) ID() uuid.UUID {
 	return o.id
 }
@@ -78,12 +61,4 @@ func (o *order) Items() []OrderItem {
 
 func (o *order) Total() float64 {
 	return o.total
-}
-
-func (oi *orderItem) ProductID() uuid.UUID {
-	return oi.productID
-}
-
-func (oi *orderItem) Quantity() int {
-	return oi.quantity
 }

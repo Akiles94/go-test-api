@@ -6,7 +6,6 @@ type ProductItem struct {
 }
 
 type CreateOrderRequestDto struct {
-	UserID       string        `json:"userId" binding:"required,uuid"`
 	Status       string        `json:"status" binding:"required,oneof=pending completed cancelled"`
 	Address      string        `json:"address" binding:"required"`
 	ProductItems []ProductItem `json:"productItems" binding:"required,dive"`

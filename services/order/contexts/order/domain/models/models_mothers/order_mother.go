@@ -21,8 +21,8 @@ func NewOrderMother() *OrderMother {
 		Status:  "pending",
 		Address: "123 Main St, Anytown, USA",
 		Items: []models.OrderItem{
-			models.NewOrderItem(uuid.MustParse("00000000-0000-0000-0000-000000000001"), 1),
-			models.NewOrderItem(uuid.MustParse("00000000-0000-0000-0000-000000000002"), 2),
+			models.NewOrderItem(uuid.New(), uuid.MustParse("00000000-0000-0000-0000-000000000001"), 1, 49.99),
+			models.NewOrderItem(uuid.New(), uuid.MustParse("00000000-0000-0000-0000-000000000002"), 2, 25.00),
 		},
 		Total: 99.99,
 	}
