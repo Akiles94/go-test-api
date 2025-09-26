@@ -24,6 +24,7 @@ func NewOrderItem(id, productID uuid.UUID, quantity int, price float64) OrderIte
 		price:     price,
 	}
 }
+
 func (oi *orderItem) ID() uuid.UUID {
 	return oi.id
 }
